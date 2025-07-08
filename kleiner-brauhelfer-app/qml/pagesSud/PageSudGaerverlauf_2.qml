@@ -14,7 +14,7 @@ PageBase {
     id: page
     title: qsTr("Hauptgärung")
     icon: "hauptgaerung.png"
-    readOnly: Brauhelfer.readonly || app.settings.readonly || (Brauhelfer.sud.Status !== Brauhelfer.Gebraut && !app.brewForceEditable)
+    readOnly: Brauhelfer.readonly || app.settings.readonly || (Sud.Status !== Brauhelfer.Gebraut && !app.brewForceEditable)
 
     ColumnLayout {
         property alias listView: listView
@@ -28,7 +28,7 @@ PageBase {
             color1: "#741EA6"
             title2: qsTr("Extrakt")
             color2: "#2E4402"
-            should2: Brauhelfer.sud.SchnellgaerprobeAktiv ? Brauhelfer.sud.Gruenschlauchzeitpunkt : null
+            should2: Sud.SchnellgaerprobeAktiv ? Sud.Gruenschlauchzeitpunkt : null
             title3: qsTr("Temp")
             color3: "#780000"
             legend.visible: false
@@ -58,7 +58,7 @@ PageBase {
             Layout.fillHeight: true
             clip: true
             boundsBehavior: Flickable.OvershootBounds
-            model: Brauhelfer.sud.modelHauptgaerverlauf
+            model: Sud.modelHauptgaerverlauf
             headerPositioning: listView.height < app.config.headerFooterPositioningThresh ? ListView.PullBackHeader : ListView.OverlayHeader
             Component.onCompleted: if (!readOnly) positionViewAtEnd()
             ScrollIndicator.vertical: ScrollIndicator {}
@@ -203,7 +203,7 @@ PageBase {
                 imageSource: "qrc:/images/ic_add_white.png"
                 visible: !page.readOnly
                 onClicked: {
-                    listView.model.append({"SudID": Brauhelfer.sud.id})
+                    listView.model.append({"SudID": Sud.id})
                     listView.currentIndex = listView.count - 1
                     popuploader.active = true
                 }
@@ -231,7 +231,7 @@ PageBase {
             boundsBehavior: Flickable.OvershootBounds
             ScrollIndicator.vertical: ScrollIndicator {}
             model: ProxyModel {
-                sourceModel: Brauhelfer.sud.modelWeitereZutatenGaben
+                sourceModel: Sud.modelWeitereZutatenGaben
                 filterKeyColumn: fieldIndex("Zeitpunkt")
                 filterRegularExpression: /0/
             }

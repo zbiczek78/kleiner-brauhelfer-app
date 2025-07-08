@@ -115,7 +115,7 @@ PageBase {
 
             delegate: ItemDelegate {
                 property bool showdetails: false
-                property bool selected: Brauhelfer.sud.id === model.ID
+                property bool selected: Sud.id === model.ID
 
                 width: listView.width
                 height: row.height + divider.height

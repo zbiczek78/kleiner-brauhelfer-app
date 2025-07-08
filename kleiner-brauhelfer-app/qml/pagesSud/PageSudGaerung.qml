@@ -12,7 +12,7 @@ PageBase {
     id: page
     title: qsTr("Gärung")
     icon: "gaerung.png"
-    readOnly: Brauhelfer.readonly || app.settings.readonly || (Brauhelfer.sud.Status !== Brauhelfer.Abgefuellt && !app.brewForceEditable)
+    readOnly: Brauhelfer.readonly || app.settings.readonly || (Sud.Status !== Brauhelfer.Abgefuellt && !app.brewForceEditable)
 
     Flickable {
         anchors.fill: parent
@@ -46,10 +46,10 @@ PageBase {
                         id: tfAbfuelldatum
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
-                        enabled: !(Brauhelfer.readonly || app.settings.readonly || (Brauhelfer.sud.Status !== Brauhelfer.Abgefuellt && !app.brewForceEditable))
-                        date: Brauhelfer.sud.ReifungStart
+                        enabled: !(Brauhelfer.readonly || app.settings.readonly || (Sud.Status !== Brauhelfer.Abgefuellt && !app.brewForceEditable))
+                        date: Sud.ReifungStart
                         onNewDate: (date) => {
-                            Brauhelfer.sud.ReifungStart = date
+                            Sud.ReifungStart = date
                         }
                     }
                     TextAreaBase {
@@ -58,9 +58,9 @@ PageBase {
                         opacity: enabled ? app.config.textOpacityFull : app.config.textOpacityDisabled
                         placeholderText: qsTr("Bemerkung Gärung")
                         textFormat: Text.RichText
-                        text: Brauhelfer.sud.BemerkungGaerung
+                        text: Sud.BemerkungGaerung
                         onLinkActivated: (link) => Qt.openUrlExternally(link)
-                        onTextChanged: if (activeFocus) Brauhelfer.sud.BemerkungGaerung = text
+                        onTextChanged: if (activeFocus) Sud.BemerkungGaerung = text
                     }
                     ButtonBase {
                         id: ctrlAbgefuellt
@@ -68,7 +68,7 @@ PageBase {
                         Layout.fillWidth: true
                         text: qsTr("Sud verbraucht")
                         enabled: !page.readOnly
-                        onClicked: Brauhelfer.sud.Status = Brauhelfer.Verbraucht
+                        onClicked: Sud.Status = Brauhelfer.Verbraucht
                     }
                 }
             }

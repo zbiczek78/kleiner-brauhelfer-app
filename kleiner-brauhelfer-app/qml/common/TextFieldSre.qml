@@ -97,7 +97,7 @@ TextFieldPlato {
                     opacity: enabled ? app.config.textOpacityFull : app.config.textOpacityDisabled
                     onCurrentIndexChanged: {
                         app.settings.refractometerIndex = currentIndex
-                        tfPlato.value = BierCalc.dichteToPlato(BierCalc.brixToDichte(Brauhelfer.sud.SWIst, tfBrix.value, app.settings.refractometerIndex))
+                        tfPlato.value = BierCalc.dichteToPlato(BierCalc.brixToDichte(Sud.SWIst, tfBrix.value, app.settings.refractometerIndex))
                     }
                 }
                 Item {
@@ -110,7 +110,7 @@ TextFieldPlato {
                     visible: app.settings.restextraktMethode == 1
                     onNewValue: (value) => {
                         this.value = value
-                        tfPlato.value = BierCalc.dichteToPlato(BierCalc.brixToDichte(Brauhelfer.sud.SWIst, value, app.settings.refractometerIndex))
+                        tfPlato.value = BierCalc.dichteToPlato(BierCalc.brixToDichte(Sud.SWIst, value, app.settings.refractometerIndex))
                     }
                 }
                 LabelUnit {

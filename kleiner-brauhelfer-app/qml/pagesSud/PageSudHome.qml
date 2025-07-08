@@ -10,7 +10,7 @@ import brauhelfer
 PageBase {
     title: qsTr("Auswahl")
     icon: "ic_view_module.png"
-    enabled: Brauhelfer.sud.isLoaded
+    enabled: Sud.isLoaded
 
     ColumnLayout {
         anchors.fill: parent

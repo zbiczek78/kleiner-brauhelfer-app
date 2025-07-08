@@ -165,7 +165,7 @@ ApplicationWindow {
                 brewForceEditable = false
                 break
             case loadBrew:
-                Brauhelfer.sud.load(param)
+                Sud.load(param)
                 buildMenus()
                 navPane.goTo(viewSud, 0)
                 brewForceEditable = false
@@ -218,7 +218,7 @@ ApplicationWindow {
     }
 
     function loadBrew(id) {
-        if (Brauhelfer.sud.id !== id) {
+        if (Sud.id !== id) {
             loadBrewNow(id)
         }
         else {
@@ -314,12 +314,12 @@ ApplicationWindow {
     header: Header {
         text: navPane.currentItem.currentItem.title
         textSub: {
-            if (Brauhelfer.sud.isLoaded) {
-                var n = Brauhelfer.sud.Sudnummer
+            if (Sud.isLoaded) {
+                var n = Sud.Sudnummer
                 if (n > 0)
-                    return Brauhelfer.sud.Sudname + " (#" + n + ")"
+                    return Sud.Sudname + " (#" + n + ")"
                 else
-                    return Brauhelfer.sud.Sudname
+                    return Sud.Sudname
             }
             else {
                 return Qt.application.name
@@ -352,7 +352,7 @@ ApplicationWindow {
         function build() {
             while (count > 0)
                 takeItem(0)
-            if (Brauhelfer.sud.isLoaded) {
+            if (Sud.isLoaded) {
                 addItem(pageSudHome)
                 addItem(pageSudInfo)
                 addItem(pageSudBrauen)

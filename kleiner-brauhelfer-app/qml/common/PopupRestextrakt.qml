@@ -87,7 +87,7 @@ PopupBase {
                 this.value = value
                 var brix = value
                 if (!isNaN(brix)) {
-                    var density = BierCalc.brixToDichte(Brauhelfer.sud.SWIst, brix, app.settings.refractometerIndex)
+                    var density = BierCalc.brixToDichte(Sud.SWIst, brix, app.settings.refractometerIndex)
                     var sre = BierCalc.dichteToPlato(density)
                     model.Restextrakt = sre
                 }

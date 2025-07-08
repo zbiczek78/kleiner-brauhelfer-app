@@ -11,14 +11,14 @@ PageBase {
     id: page
     title: qsTr("Bewertung")
     icon: "ic_star.png"
-    readOnly: Brauhelfer.readonly || app.settings.readonly || (Brauhelfer.sud.Status < Brauhelfer.Abgefuellt && !app.brewForceEditable)
+    readOnly: Brauhelfer.readonly || app.settings.readonly || (Sud.Status < Brauhelfer.Abgefuellt && !app.brewForceEditable)
 
     ListView {
         id: listView
         clip: true
         anchors.fill: parent
         boundsBehavior: Flickable.OvershootBounds
-        model: Brauhelfer.sud.modelBewertungen
+        model: Sud.modelBewertungen
         headerPositioning: listView.height < app.config.headerFooterPositioningThresh ? ListView.PullBackHeader : ListView.OverlayHeader
         ScrollIndicator.vertical: ScrollIndicator {}
         header: Rectangle {
@@ -836,7 +836,7 @@ PageBase {
             imageSource: "qrc:/images/ic_add_white.png"
             visible: !page.readOnly
             onClicked: {
-                listView.model.append({"SudID": Brauhelfer.sud.id})
+                listView.model.append({"SudID": Sud.id})
                 listView.currentIndex = listView.count - 1
                 popuploader.active = true
             }

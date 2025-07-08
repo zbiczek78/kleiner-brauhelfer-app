@@ -12,7 +12,7 @@ PageBase {
     id: page
     title: qsTr("Abfüllen")
     icon: "abfuellen.png"
-    readOnly: Brauhelfer.readonly || app.settings.readonly || (Brauhelfer.sud.Status !== Brauhelfer.Gebraut && !app.brewForceEditable)
+    readOnly: Brauhelfer.readonly || app.settings.readonly || (Sud.Status !== Brauhelfer.Gebraut && !app.brewForceEditable)
 
     Flickable {
         anchors.fill: parent
@@ -24,23 +24,23 @@ PageBase {
 
         function abgefuellt() {
             var bereit = true;
-            if (!Brauhelfer.sud.AbfuellenBereitZutaten) {
+            if (!Sud.AbfuellenBereitZutaten) {
                 bereit = false;
             }
-            else if (Brauhelfer.sud.SchnellgaerprobeAktiv) {
-                if (Brauhelfer.sud.SWJungbier > Brauhelfer.sud.Gruenschlauchzeitpunkt)
+            else if (Sud.SchnellgaerprobeAktiv) {
+                if (Sud.SWJungbier > Sud.Gruenschlauchzeitpunkt)
                     bereit = false;
-                else if (Brauhelfer.sud.SWJungbier < Brauhelfer.sud.SWSchnellgaerprobe)
+                else if (Sud.SWJungbier < Sud.SWSchnellgaerprobe)
                     bereit = false;
             }
             if (bereit) {
-                Brauhelfer.sud.Abfuelldatum = tfAbfuelldatum.date
-                Brauhelfer.sud.Status = Brauhelfer.Abgefuellt
-                var values = {"SudID": Brauhelfer.sud.id,
-                              "Zeitstempel": Brauhelfer.sud.Abfuelldatum,
-                              "Temp": Brauhelfer.sud.TemperaturJungbier }
-                if (Brauhelfer.sud.modelNachgaerverlauf.rowCount() === 0)
-                    Brauhelfer.sud.modelNachgaerverlauf.append(values)
+                Sud.Abfuelldatum = tfAbfuelldatum.date
+                Sud.Status = Brauhelfer.Abgefuellt
+                var values = {"SudID": Sud.id,
+                              "Zeitstempel": Sud.Abfuelldatum,
+                              "Temp": Sud.TemperaturJungbier }
+                if (Sud.modelNachgaerverlauf.rowCount() === 0)
+                    Sud.modelNachgaerverlauf.append(values)
             }
         }
 
@@ -68,7 +68,7 @@ PageBase {
                         height: contentHeight
                         interactive: false
                         model: ProxyModel {
-                            sourceModel: Brauhelfer.sud.modelWeitereZutatenGaben
+                            sourceModel: Sud.modelWeitereZutatenGaben
                             filterKeyColumn: fieldIndex("Zeitpunkt")
                             filterRegularExpression: /0/
                         }
@@ -122,7 +122,7 @@ PageBase {
                         }
                     }
                     LabelPrim {
-                        visible: Brauhelfer.sud.Status === Brauhelfer.Gebraut && !Brauhelfer.sud.AbfuellenBereitZutaten
+                        visible: Sud.Status === Brauhelfer.Gebraut && !Sud.AbfuellenBereitZutaten
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
                         color: Material.accent
@@ -157,8 +157,8 @@ PageBase {
                         Layout.columnSpan: 3
                         text: qsTr("Aktiviert")
                         enabled: !page.readOnly
-                        checked: Brauhelfer.sud.SchnellgaerprobeAktiv
-                        onClicked: Brauhelfer.sud.SchnellgaerprobeAktiv = checked
+                        checked: Sud.SchnellgaerprobeAktiv
+                        onClicked: Sud.SchnellgaerprobeAktiv = checked
                     }
                     LabelPrim {
                         Layout.fillWidth: true
@@ -168,9 +168,9 @@ PageBase {
                     TextFieldSre {
                         enabled: !page.readOnly && ctrlSGPen.checked
                         visible: ctrlSGPen.checked
-                        sw: Brauhelfer.sud.SWIst
-                        value: Brauhelfer.sud.SWSchnellgaerprobe
-                        onNewValue: (value) => Brauhelfer.sud.SWSchnellgaerprobe = value
+                        sw: Sud.SWIst
+                        value: Sud.SWSchnellgaerprobe
+                        onNewValue: (value) => Sud.SWSchnellgaerprobe = value
                     }
                     LabelUnit {
                         visible: ctrlSGPen.checked
@@ -185,14 +185,14 @@ PageBase {
                         id: ctrlGS
                         horizontalAlignment: Text.AlignHCenter
                         visible: ctrlSGPen.checked
-                        value: Brauhelfer.sud.Gruenschlauchzeitpunkt
+                        value: Sud.Gruenschlauchzeitpunkt
                     }
                     LabelUnit {
                         visible: ctrlSGPen.checked
                         text: qsTr("°P")
                     }
                     LabelPrim {
-                        visible: ctrlSGPen.checked && Brauhelfer.sud.SWJungbier < Brauhelfer.sud.SWSchnellgaerprobe
+                        visible: ctrlSGPen.checked && Sud.SWJungbier < Sud.SWSchnellgaerprobe
                         Layout.columnSpan: 3
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
@@ -218,9 +218,9 @@ PageBase {
                     }
                     TextFieldSre {
                         enabled: !page.readOnly
-                        sw: Brauhelfer.sud.SWIst
-                        value: Brauhelfer.sud.SWJungbier
-                        onNewValue: (value) => Brauhelfer.sud.SWJungbier = value
+                        sw: Sud.SWIst
+                        value: Sud.SWJungbier
+                        onNewValue: (value) => Sud.SWJungbier = value
                     }
                     LabelUnit {
                         text: qsTr("°P")
@@ -231,13 +231,13 @@ PageBase {
                         text: qsTr("Erwartet")
                     }
                     LabelPlato {
-                        value: BierCalc.sreAusVergaerungsgrad(Brauhelfer.sud.SWIst, Brauhelfer.sud.Vergaerungsgrad)
+                        value: BierCalc.sreAusVergaerungsgrad(Sud.SWIst, Sud.Vergaerungsgrad)
                     }
                     LabelUnit {
                         text: qsTr("°P")
                     }
                     LabelPrim {
-                        visible: ctrlSGPen.checked && Brauhelfer.sud.SWJungbier > Brauhelfer.sud.Gruenschlauchzeitpunkt
+                        visible: ctrlSGPen.checked && Sud.SWJungbier > Sud.Gruenschlauchzeitpunkt
                         Layout.columnSpan: 3
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
@@ -263,7 +263,7 @@ PageBase {
                     }
                     LabelPlato {
                         horizontalAlignment: Text.AlignHCenter
-                        value: Brauhelfer.sud.SWIst
+                        value: Sud.SWIst
                     }
                     LabelUnit {
                         text: qsTr("°P")
@@ -273,7 +273,7 @@ PageBase {
                         text: qsTr("Vergärungsgrad")
                     }
                     LabelNumber {
-                        value: BierCalc.vergaerungsgrad(Brauhelfer.sud.SWIst, Brauhelfer.sud.SREIst)
+                        value: BierCalc.vergaerungsgrad(Sud.SWIst, Sud.SREIst)
                     }
                     LabelUnit {
                         text: qsTr("%")
@@ -285,7 +285,7 @@ PageBase {
                     }
                     LabelNumber {
                         precision: 1
-                        value: Brauhelfer.sud.Vergaerungsgrad
+                        value: Sud.Vergaerungsgrad
                     }
                     LabelUnit {
                         text: qsTr("%")
@@ -297,7 +297,7 @@ PageBase {
                     LabelNumber {
                         id: ctrlAlc
                         precision: 1
-                        value: Brauhelfer.sud.erg_Alkohol
+                        value: Sud.erg_Alkohol
                     }
                     LabelUnit {
                         text: qsTr("%vol")
@@ -309,7 +309,7 @@ PageBase {
                     }
                     LabelNumber {
                         precision: 1
-                        value: Brauhelfer.sud.AlkoholSoll
+                        value: Sud.AlkoholSoll
                     }
                     LabelUnit {
                         text: qsTr("%vol")
@@ -335,8 +335,8 @@ PageBase {
                         id: ctrlJungbiermenge
                         enabled: !page.readOnly
                         useDialog: false
-                        value: Brauhelfer.sud.JungbiermengeAbfuellen
-                        onNewValue: (value) => Brauhelfer.sud.JungbiermengeAbfuellen = value
+                        value: Sud.JungbiermengeAbfuellen
+                        onNewValue: (value) => Sud.JungbiermengeAbfuellen = value
                     }
                     LabelUnit {
                         text: qsTr("L")
@@ -346,7 +346,7 @@ PageBase {
                         text: qsTr("Verlust seit Anstellen")
                     }
                     LabelNumber {
-                        value: Brauhelfer.sud.WuerzemengeAnstellen - Brauhelfer.sud.JungbiermengeAbfuellen
+                        value: Sud.WuerzemengeAnstellen - Sud.JungbiermengeAbfuellen
                     }
                     LabelUnit {
                         text: qsTr("L")
@@ -357,8 +357,8 @@ PageBase {
                     }
                     TextFieldTemperature {
                         enabled: !page.readOnly
-                        value: Brauhelfer.sud.TemperaturJungbier
-                        onNewValue: (value) => Brauhelfer.sud.TemperaturJungbier = value
+                        value: Sud.TemperaturJungbier
+                        onNewValue: (value) => Sud.TemperaturJungbier = value
                     }
                     LabelUnit {
                         text: qsTr("°C")
@@ -369,7 +369,7 @@ PageBase {
                     }
                     LabelNumber {
                         precision: 2
-                        value: Brauhelfer.sud.Spundungsdruck
+                        value: Sud.Spundungsdruck
                     }
                     LabelUnit {
                         text: qsTr("bar")
@@ -392,8 +392,8 @@ PageBase {
                         Layout.columnSpan: 5
                         text: qsTr("Spunden")
                         enabled: !page.readOnly
-                        checked: Brauhelfer.sud.Spunden
-                        onClicked: Brauhelfer.sud.Spunden = checked
+                        checked: Sud.Spunden
+                        onClicked: Sud.Spunden = checked
                     }
                     LabelPrim {
                         Layout.fillWidth: true
@@ -404,8 +404,8 @@ PageBase {
                     TextFieldTemperature {
                         enabled: !page.readOnly
                         visible: !ctrlSpunden.checked
-                        value: Brauhelfer.sud.TemperaturKarbonisierung
-                        onNewValue: (value) => Brauhelfer.sud.TemperaturKarbonisierung = value
+                        value: Sud.TemperaturKarbonisierung
+                        onNewValue: (value) => Sud.TemperaturKarbonisierung = value
                     }
                     LabelUnit {
                         visible: !ctrlSpunden.checked
@@ -437,8 +437,8 @@ PageBase {
                         visible: !ctrlSpunden.checked
                         precision: 2
                         enabled: !page.readOnly
-                        value: Brauhelfer.sud.VerschneidungAbfuellen
-                        onNewValue: (value) => Brauhelfer.sud.VerschneidungAbfuellen = value
+                        value: Sud.VerschneidungAbfuellen
+                        onNewValue: (value) => Sud.VerschneidungAbfuellen = value
                     }
                     LabelUnit {
                         visible: !ctrlSpunden.checked
@@ -454,8 +454,8 @@ PageBase {
                         visible: !ctrlSpunden.checked
                         enabled: !page.readOnly
                         precision: 2
-                        value: Brauhelfer.sud.Speisemenge
-                        onNewValue: (value) => Brauhelfer.sud.Speisemenge = value
+                        value: Sud.Speisemenge
+                        onNewValue: (value) => Sud.Speisemenge = value
                     }
                     LabelUnit {
                         visible: !ctrlSpunden.checked
@@ -470,7 +470,7 @@ PageBase {
                         id: tbSpeiseAnteil
                         visible: !ctrlSpunden.checked
                         precision: 0
-                        value: Brauhelfer.sud.SpeiseAnteil
+                        value: Sud.SpeiseAnteil
                     }
                     LabelUnit {
                         visible: tbSpeiseAnteil.visible
@@ -480,7 +480,7 @@ PageBase {
                         horizontalAlignment: Text.AlignHCenter
                         visible: tbSpeiseAnteil.visible
                         precision: 1
-                        value: Brauhelfer.sud.JungbiermengeAbfuellen > 0.0 ? Brauhelfer.sud.SpeiseAnteil / Brauhelfer.sud.JungbiermengeAbfuellen : 0.0
+                        value: Sud.JungbiermengeAbfuellen > 0.0 ? Sud.SpeiseAnteil / Sud.JungbiermengeAbfuellen : 0.0
                     }
                     LabelUnit {
                         visible: tbSpeiseAnteil.visible
@@ -495,7 +495,7 @@ PageBase {
                         id: tbZuckerAnteil
                         visible: !ctrlSpunden.checked && value > 0.0
                         precision: 0
-                        value: Brauhelfer.sud.ZuckerAnteil / app.settings.sugarFactor
+                        value: Sud.ZuckerAnteil / app.settings.sugarFactor
                     }
                     LabelUnit {
                         visible: tbZuckerAnteil.visible
@@ -505,7 +505,7 @@ PageBase {
                         horizontalAlignment: Text.AlignHCenter
                         visible: tbZuckerAnteil.visible
                         precision: 1
-                        value: Brauhelfer.sud.JungbiermengeAbfuellen > 0.0 ? tbZuckerAnteil.value / Brauhelfer.sud.JungbiermengeAbfuellen : 0.0
+                        value: Sud.JungbiermengeAbfuellen > 0.0 ? tbZuckerAnteil.value / Sud.JungbiermengeAbfuellen : 0.0
                     }
                     LabelUnit {
                         visible: tbZuckerAnteil.visible
@@ -534,8 +534,8 @@ PageBase {
                         visible: !ctrlSpunden.checked
                         enabled: !page.readOnly
                         useDialog: false
-                        value: Brauhelfer.sud.erg_AbgefuellteBiermenge
-                        onNewValue: (value) => Brauhelfer.sud.erg_AbgefuellteBiermenge = value
+                        value: Sud.erg_AbgefuellteBiermenge
+                        onNewValue: (value) => Sud.erg_AbgefuellteBiermenge = value
                     }
                     LabelUnit {
                         visible: !ctrlSpunden.checked
@@ -563,7 +563,7 @@ PageBase {
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         enabled: !page.readOnly
-                        date: Brauhelfer.sud.Status >= Brauhelfer.Abgefuellt ? Brauhelfer.sud.Abfuelldatum : new Date()
+                        date: Sud.Status >= Brauhelfer.Abgefuellt ? Sud.Abfuelldatum : new Date()
                         onNewDate: (date) => {
                             this.date = date
                         }
@@ -575,8 +575,8 @@ PageBase {
                     TextFieldNumber {
                         enabled: !page.readOnly
                         precision: 2
-                        value: Brauhelfer.sud.KostenWasserStrom
-                        onNewValue: (value) => Brauhelfer.sud.KostenWasserStrom = value
+                        value: Sud.KostenWasserStrom
+                        onNewValue: (value) => Sud.KostenWasserStrom = value
                     }
                     LabelUnit {
                         text: Qt.locale().currencySymbol()
@@ -587,7 +587,7 @@ PageBase {
                     }
                     LabelNumber {
                         precision: 2
-                        value: Brauhelfer.sud.erg_Preis
+                        value: Sud.erg_Preis
                     }
                     LabelUnit {
                         text: Qt.locale().currencySymbol() + "/" + qsTr("L")
@@ -598,9 +598,9 @@ PageBase {
                         opacity: enabled ? app.config.textOpacityFull : app.config.textOpacityDisabled
                         placeholderText: qsTr("Bemerkung Abfüllen")
                         textFormat: Text.RichText
-                        text: Brauhelfer.sud.BemerkungAbfuellen
+                        text: Sud.BemerkungAbfuellen
                         onLinkActivated: (link) => Qt.openUrlExternally(link)
-                        onTextChanged: if (activeFocus) Brauhelfer.sud.BemerkungAbfuellen = text
+                        onTextChanged: if (activeFocus) Sud.BemerkungAbfuellen = text
                     }
                     ButtonBase {
                         id: ctrlAbgefuellt

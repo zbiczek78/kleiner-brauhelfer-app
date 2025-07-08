@@ -15,9 +15,9 @@ PageBase {
     icon: "refractometer.png"
 
     function takeValuesFromBrew() {
-        var value = Brauhelfer.sud.SW
-        if (Brauhelfer.sud.Status !== Brauhelfer.Rezept)
-            value = Brauhelfer.sud.SWAnstellen
+        var value = Sud.SW
+        if (Sud.Status !== Brauhelfer.Rezept)
+            value = Sud.SWAnstellen
         brixStart = BierCalc.platoToBrix(value)
         brixEnd = brixStart
     }

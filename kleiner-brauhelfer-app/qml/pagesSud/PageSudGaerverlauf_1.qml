@@ -12,7 +12,7 @@ PageBase {
     id: page
     title: qsTr("Schnellgärung")
     icon: "schnellgaerverlauf.png"
-    readOnly: Brauhelfer.readonly || app.settings.readonly || (Brauhelfer.sud.Status !== Brauhelfer.Gebraut && !app.brewForceEditable)
+    readOnly: Brauhelfer.readonly || app.settings.readonly || (Sud.Status !== Brauhelfer.Gebraut && !app.brewForceEditable)
 
     ColumnLayout {
         property alias listView: listView
@@ -55,7 +55,7 @@ PageBase {
             Layout.fillHeight: true
             clip: true
             boundsBehavior: Flickable.OvershootBounds
-            model: Brauhelfer.sud.modelSchnellgaerverlauf
+            model: Sud.modelSchnellgaerverlauf
             headerPositioning: listView.height < app.config.headerFooterPositioningThresh ? ListView.PullBackHeader : ListView.OverlayHeader
             Component.onCompleted: if (!readOnly) positionViewAtEnd()
             ScrollIndicator.vertical: ScrollIndicator {}
@@ -200,7 +200,7 @@ PageBase {
                 imageSource: "qrc:/images/ic_add_white.png"
                 visible: !page.readOnly
                 onClicked: {
-                    listView.model.append({"SudID": Brauhelfer.sud.id})
+                    listView.model.append({"SudID": Sud.id})
                     listView.currentIndex = listView.count - 1
                     popuploader.active = true
                 }

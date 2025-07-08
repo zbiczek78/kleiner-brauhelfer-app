@@ -12,7 +12,7 @@ PageBase {
     id: page
     title: qsTr("Nachgärung")
     icon: "nachgaerung.png"
-    readOnly: Brauhelfer.readonly || app.settings.readonly || (Brauhelfer.sud.Status !== Brauhelfer.Abgefuellt && !app.brewForceEditable)
+    readOnly: Brauhelfer.readonly || app.settings.readonly || (Sud.Status !== Brauhelfer.Abgefuellt && !app.brewForceEditable)
 
     ColumnLayout {
         property alias listView: listView
@@ -24,7 +24,7 @@ PageBase {
             Layout.fillHeight: true
             title1: qsTr("CO2")
             color1: "#741EA6"
-            should1: Brauhelfer.sud.CO2
+            should1: Sud.CO2
             title2: qsTr("Druck")
             color2: "#2E4402"
             title3: qsTr("Temp")
@@ -56,7 +56,7 @@ PageBase {
             Layout.fillHeight: true
             clip: true
             boundsBehavior: Flickable.OvershootBounds
-            model: Brauhelfer.sud.modelNachgaerverlauf
+            model: Sud.modelNachgaerverlauf
             headerPositioning: listView.height < app.config.headerFooterPositioningThresh ? ListView.PullBackHeader : ListView.OverlayHeader
             Component.onCompleted: if (!readOnly) positionViewAtEnd()
             ScrollIndicator.vertical: ScrollIndicator {}
@@ -201,7 +201,7 @@ PageBase {
                 imageSource: "qrc:/images/ic_add_white.png"
                 visible: !page.readOnly
                 onClicked: {
-                    listView.model.append({"SudID": Brauhelfer.sud.id})
+                    listView.model.append({"SudID": Sud.id})
                     listView.currentIndex = listView.count - 1
                     popuploader.active = true
                 }

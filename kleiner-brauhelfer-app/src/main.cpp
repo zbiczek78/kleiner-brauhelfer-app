@@ -16,6 +16,7 @@
 
 static LanguageSelector* langSel;
 static Brauhelfer *bh;
+static SudObject *sud;
 static BierCalc *bierCalc;
 static SyncServiceManager *syncMan;
 static QmlUtils *utils;
@@ -38,15 +39,17 @@ int main(int argc, char *argv[])
     langSel = new LanguageSelector(&app, &engine);
     syncMan = new SyncServiceManager(settings);
     bh = new Brauhelfer();
+    sud = new SudObject(bh);
     bierCalc = new BierCalc();
     utils = new QmlUtils();
 
     // register classes to QML
-    qmlRegisterSingletonType<LanguageSelector>("languageSelector", 1, 0, "LanguageSelector", [](...){return langSel;});
-    qmlRegisterSingletonType<Brauhelfer>("brauhelfer", 1, 0, "Brauhelfer", [](...){return bh;});
-    qmlRegisterSingletonType<BierCalc>("brauhelfer", 1, 0, "BierCalc", [](...){return bierCalc;});
-    qmlRegisterSingletonType<SyncServiceManager>("brauhelfer", 1, 0, "SyncService", [](...){return syncMan;});
-    qmlRegisterSingletonType<QmlUtils>("qmlutils", 1, 0, "Utils", [](...){return utils;});
+    qmlRegisterSingletonInstance<LanguageSelector>("languageSelector", 1, 0, "LanguageSelector", langSel);
+    qmlRegisterSingletonInstance<Brauhelfer>("brauhelfer", 1, 0, "Brauhelfer", bh);
+    qmlRegisterSingletonInstance<SudObject>("brauhelfer", 1, 0, "Sud", sud);
+    qmlRegisterSingletonInstance<BierCalc>("brauhelfer", 1, 0, "BierCalc", bierCalc);
+    qmlRegisterSingletonInstance<SyncServiceManager>("brauhelfer", 1, 0, "SyncService", syncMan);
+    qmlRegisterSingletonInstance<QmlUtils>("qmlutils", 1, 0, "Utils", utils);
     qmlRegisterType<ProxyModel>("ProxyModel", 1, 0, "ProxyModel");
     qmlRegisterType<ProxyModelRohstoff>("ProxyModelRohstoff", 1, 0, "ProxyModelRohstoff");
     qmlRegisterType<ProxyModelSud>("ProxyModelSud", 1, 0, "ProxyModelSud");

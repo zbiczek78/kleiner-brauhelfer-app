@@ -13,7 +13,7 @@ PageBase {
     id: page
     title: qsTr("Brauen")
     icon: "brauen.png"
-    readOnly: Brauhelfer.readonly || app.settings.readonly || (Brauhelfer.sud.Status > Brauhelfer.Rezept && !app.brewForceEditable)
+    readOnly: Brauhelfer.readonly || app.settings.readonly || (Sud.Status > Brauhelfer.Rezept && !app.brewForceEditable)
 
     Flickable {
         anchors.fill: parent
@@ -25,14 +25,14 @@ PageBase {
 
         function gebraut() {
             messageDialog.open()
-            Brauhelfer.sud.Braudatum = tfBraudatum.date
-            Brauhelfer.sud.Status = Brauhelfer.Gebraut
-            var values = {"SudID": Brauhelfer.sud.id,
-                          "Zeitstempel": Brauhelfer.sud.Braudatum}
-            if (Brauhelfer.sud.modelSchnellgaerverlauf.rowCount() === 0)
-                Brauhelfer.sud.modelSchnellgaerverlauf.append(values)
-            if (Brauhelfer.sud.modelHauptgaerverlauf.rowCount() === 0)
-                Brauhelfer.sud.modelHauptgaerverlauf.append(values)
+            Sud.Braudatum = tfBraudatum.date
+            Sud.Status = Brauhelfer.Gebraut
+            var values = {"SudID": Sud.id,
+                          "Zeitstempel": Sud.Braudatum}
+            if (Sud.modelSchnellgaerverlauf.rowCount() === 0)
+                Sud.modelSchnellgaerverlauf.append(values)
+            if (Sud.modelHauptgaerverlauf.rowCount() === 0)
+                Sud.modelHauptgaerverlauf.append(values)
         }
 
         // message dialog
@@ -40,7 +40,7 @@ PageBase {
             id: messageDialog
             text: qsTr("Verwendete Rohstoffe vom Bestand abziehen?")
             buttons: MessageDialog.Yes | MessageDialog.No
-            onYesClicked: Brauhelfer.sud.brauzutatenAbziehen()
+            onYesClicked: Sud.brauzutatenAbziehen()
         }
 
         ColumnLayout {
@@ -63,7 +63,7 @@ PageBase {
                         text: qsTr("Malz")
                     }
                     Repeater {
-                        model: Brauhelfer.sud.modelMalzschuettung
+                        model: Sud.modelMalzschuettung
                         delegate: RowLayout {
                             Layout.leftMargin: 8
                             spacing: 16
@@ -103,7 +103,7 @@ PageBase {
                         LabelNumber {
                             font.bold: true
                             precision: 2
-                            value: Brauhelfer.sud.erg_S_Gesamt
+                            value: Sud.erg_S_Gesamt
                         }
                         LabelUnit {
                             text: qsTr("kg")
@@ -122,7 +122,7 @@ PageBase {
                     Repeater {
                         id: repeaterModelWeitereZutatenGabenMaischen
                         model: ProxyModel {
-                            sourceModel: Brauhelfer.sud.modelWeitereZutatenGaben
+                            sourceModel: Sud.modelWeitereZutatenGaben
                             filterKeyColumn: fieldIndex("Zeitpunkt")
                             filterRegularExpression: /2/
                         }
@@ -166,14 +166,14 @@ PageBase {
                                 text: qsTr("Wassermenge")
                             }
                             LabelNumber {
-                                value: Brauhelfer.sud.erg_WHauptguss
+                                value: Sud.erg_WHauptguss
                             }
                             LabelUnit {
                                 text: qsTr("L")
                             }
                         }
                         Repeater {
-                            model: Brauhelfer.sud.modelWasseraufbereitung
+                            model: Sud.modelWasseraufbereitung
                             delegate: RowLayout {
                                 spacing: 16
                                 LabelPrim {
@@ -182,7 +182,7 @@ PageBase {
                                 }
                                 LabelNumber {
                                     precision: 2
-                                    value: model.Menge * Brauhelfer.sud.erg_WHauptguss
+                                    value: model.Menge * Sud.erg_WHauptguss
                                 }
                                 LabelUnit {
                                     text: app.defs.einheiten[model.Einheit]
@@ -194,9 +194,9 @@ PageBase {
                             opacity: enabled ? app.config.textOpacityFull : app.config.textOpacityDisabled
                             placeholderText: qsTr("Bemerkung Wasseraufbereitung")
                             textFormat: Text.RichText
-                            text: Brauhelfer.sud.BemerkungWasseraufbereitung
+                            text: Sud.BemerkungWasseraufbereitung
                             onLinkActivated: (link) => Qt.openUrlExternally(link)
-                            onTextChanged: if (activeFocus) Brauhelfer.sud.BemerkungWasseraufbereitung = text
+                            onTextChanged: if (activeFocus) Sud.BemerkungWasseraufbereitung = text
                         }
                     }
                     HorizontalDivider {
@@ -208,7 +208,7 @@ PageBase {
                         text: qsTr("Maischplan")
                     }
                     Repeater {
-                        model: Brauhelfer.sud.modelMaischplan
+                        model: Sud.modelMaischplan
                         delegate: ColumnLayout {
                             Layout.leftMargin: 8
                             LabelPrim {
@@ -361,9 +361,9 @@ PageBase {
                         opacity: enabled ? app.config.textOpacityFull : app.config.textOpacityDisabled
                         placeholderText: qsTr("Bemerkung Maischplan")
                         textFormat: Text.RichText
-                        text: Brauhelfer.sud.BemerkungMaischplan
+                        text: Sud.BemerkungMaischplan
                         onLinkActivated: (link) => Qt.openUrlExternally(link)
-                        onTextChanged: if (activeFocus) Brauhelfer.sud.BemerkungMaischplan = text
+                        onTextChanged: if (activeFocus) Sud.BemerkungMaischplan = text
                     }
                     HorizontalDivider {
                         Layout.fillWidth: true
@@ -407,9 +407,9 @@ PageBase {
                         opacity: enabled ? app.config.textOpacityFull : app.config.textOpacityDisabled
                         placeholderText: qsTr("Bemerkung Maischen")
                         textFormat: Text.RichText
-                        text: Brauhelfer.sud.BemerkungZutatenMaischen
+                        text: Sud.BemerkungZutatenMaischen
                         onLinkActivated: (link) => Qt.openUrlExternally(link)
-                        onTextChanged: if (activeFocus) Brauhelfer.sud.BemerkungZutatenMaischen = text
+                        onTextChanged: if (activeFocus) Sud.BemerkungZutatenMaischen = text
                     }
                 }
             }
@@ -436,14 +436,14 @@ PageBase {
                                 text: qsTr("Wassermenge")
                             }
                             LabelNumber {
-                                value: Brauhelfer.sud.erg_WNachguss
+                                value: Sud.erg_WNachguss
                             }
                             LabelUnit {
                                 text: qsTr("L")
                             }
                         }
                         Repeater {
-                            model: Brauhelfer.sud.modelWasseraufbereitung
+                            model: Sud.modelWasseraufbereitung
                             delegate: RowLayout {
                                 spacing: 16
                                 LabelPrim {
@@ -452,7 +452,7 @@ PageBase {
                                 }
                                 LabelNumber {
                                     precision: 2
-                                    value: model.Menge * Brauhelfer.sud.erg_WNachguss
+                                    value: model.Menge * Sud.erg_WNachguss
                                 }
                                 LabelUnit {
                                     text: app.defs.einheiten[model.Einheit]
@@ -480,7 +480,7 @@ PageBase {
                     Repeater {
                         property int countVisible: 0
                         id: repVWH
-                        model: Brauhelfer.sud.modelHopfengaben
+                        model: Sud.modelHopfengaben
                         onItemAdded: (index,item) => { if (item.visible) ++countVisible }
                         delegate: RowLayout {
                             Layout.leftMargin: 8
@@ -517,7 +517,7 @@ PageBase {
                         }
                         LabelPlato {
                             id: lblSWSollKochbeginn
-                            value: Brauhelfer.sud.SWSollKochbeginn
+                            value: Sud.SWSollKochbeginn
                         }
                         LabelUnit {
                             text: qsTr("°P")
@@ -550,7 +550,7 @@ PageBase {
                         LabelPlato {
                             id: lblSWSollKochbeginnWz
                             visible: lblSWSollKochbeginnWz.value !== lblSWSollKochbeginn.value
-                            value: Brauhelfer.sud.SWSollKochbeginnMitWz
+                            value: Sud.SWSollKochbeginnMitWz
                         }
                         LabelUnit {
                             visible: lblSWSollKochbeginnWz.value !== lblSWSollKochbeginn.value
@@ -588,8 +588,8 @@ PageBase {
                         }
                         TextFieldSw {
                             enabled: !page.readOnly
-                            value: Brauhelfer.sud.SWKochbeginn
-                            onNewValue: (value) => Brauhelfer.sud.SWKochbeginn = value
+                            value: Sud.SWKochbeginn
+                            onNewValue: (value) => Sud.SWKochbeginn = value
                         }
                         LabelUnit {
                             text: qsTr("°P")
@@ -599,7 +599,7 @@ PageBase {
                             text: qsTr("Zielmenge bei 100°C")
                         }
                         LabelNumber {
-                            value: BierCalc.volumenWasser(20.0, 100.0, Brauhelfer.sud.MengeSollKochbeginn)
+                            value: BierCalc.volumenWasser(20.0, 100.0, Sud.MengeSollKochbeginn)
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -609,7 +609,7 @@ PageBase {
                             text: qsTr("Zielmenge bei 20°C")
                         }
                         LabelNumber {
-                            value: Brauhelfer.sud.MengeSollKochbeginn
+                            value: Sud.MengeSollKochbeginn
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -620,8 +620,8 @@ PageBase {
                         }
                         TextFieldVolume {
                             enabled: !page.readOnly
-                            value: Brauhelfer.sud.WuerzemengeKochbeginn
-                            onNewValue: (value) => Brauhelfer.sud.WuerzemengeKochbeginn = value
+                            value: Sud.WuerzemengeKochbeginn
+                            onNewValue: (value) => Sud.WuerzemengeKochbeginn = value
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -639,7 +639,7 @@ PageBase {
                         }
                         LabelNumber {
                             precision: 0
-                            value: Brauhelfer.sud.Kochdauer
+                            value: Sud.Kochdauer
                         }
                         LabelUnit {
                             text: qsTr("min")
@@ -654,7 +654,7 @@ PageBase {
                         text: qsTr("Hopfen")
                     }
                     Repeater {
-                        model: Brauhelfer.sud.modelHopfengaben
+                        model: Sud.modelHopfengaben
                         delegate: RowLayout {
                             Layout.leftMargin: 8
                             spacing: 16
@@ -691,7 +691,7 @@ PageBase {
                     Repeater {
                         id: repeaterModelWeitereZutatenGabenKochen
                         model: ProxyModel {
-                            sourceModel: Brauhelfer.sud.modelWeitereZutatenGaben
+                            sourceModel: Sud.modelWeitereZutatenGaben
                             filterKeyColumn: fieldIndex("Zeitpunkt")
                             filterRegularExpression: /1/
                         }
@@ -743,7 +743,7 @@ PageBase {
                         }
                         LabelPlato {
                             id: lblSWSollKochende
-                            value: Brauhelfer.sud.SWSollKochende
+                            value: Sud.SWSollKochende
                         }
                         LabelUnit {
                             text: qsTr("°P")
@@ -773,8 +773,8 @@ PageBase {
                         }
                         TextFieldSw {
                             enabled: !page.readOnly
-                            value: Brauhelfer.sud.SWKochende
-                            onNewValue: (value) => Brauhelfer.sud.SWKochende = value
+                            value: Sud.SWKochende
+                            onNewValue: (value) => Sud.SWKochende = value
                         }
                         LabelUnit {
                             text: qsTr("°P")
@@ -784,7 +784,7 @@ PageBase {
                             text: qsTr("Zielmenge bei 100°C")
                         }
                         LabelNumber {
-                            value: BierCalc.volumenWasser(20.0, 100.0, Brauhelfer.sud.MengeSollKochende)
+                            value: BierCalc.volumenWasser(20.0, 100.0, Sud.MengeSollKochende)
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -794,7 +794,7 @@ PageBase {
                             text: qsTr("Zielmenge bei 20°C")
                         }
                         LabelNumber {
-                            value: Brauhelfer.sud.MengeSollKochende
+                            value: Sud.MengeSollKochende
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -805,8 +805,8 @@ PageBase {
                         }
                         TextFieldVolume {
                             enabled: !page.readOnly
-                            value: Brauhelfer.sud.WuerzemengeVorHopfenseihen
-                            onNewValue: (value) => Brauhelfer.sud.WuerzemengeVorHopfenseihen = value
+                            value: Sud.WuerzemengeVorHopfenseihen
+                            onNewValue: (value) => Sud.WuerzemengeVorHopfenseihen = value
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -824,7 +824,7 @@ PageBase {
                             text: qsTr("Verdampfungsrate")
                         }
                         LabelNumber {
-                            value: Brauhelfer.sud.VerdampfungsrateIst
+                            value: Sud.VerdampfungsrateIst
                         }
                         LabelUnit {
                             text: qsTr("L/h")
@@ -835,7 +835,7 @@ PageBase {
                             text: qsTr("Aus Rezept")
                         }
                         LabelNumber {
-                            value: Brauhelfer.sud.Verdampfungsrate
+                            value: Sud.Verdampfungsrate
                         }
                         LabelUnit {
                             text: qsTr("L/h")
@@ -853,7 +853,7 @@ PageBase {
                             text: qsTr("Sudhausausbeute")
                         }
                         LabelNumber {
-                            value: Brauhelfer.sud.erg_Sudhausausbeute
+                            value: Sud.erg_Sudhausausbeute
                         }
                         LabelUnit {
                             text: qsTr("%")
@@ -864,7 +864,7 @@ PageBase {
                             text: qsTr("Aus Rezept")
                         }
                         LabelNumber {
-                            value: Brauhelfer.sud.Sudhausausbeute
+                            value: Sud.Sudhausausbeute
                         }
                         LabelUnit {
                             text: qsTr("%")
@@ -877,17 +877,17 @@ PageBase {
                         spacing: 16
                         LabelPrim {
                             Layout.fillWidth: true
-                            visible: Brauhelfer.sud.Nachisomerisierungszeit > 0.0
+                            visible: Sud.Nachisomerisierungszeit > 0.0
                             font.bold: true
                             text: qsTr("Nachisomerisierung")
                         }
                         LabelNumber {
-                            visible: Brauhelfer.sud.Nachisomerisierungszeit > 0.0
+                            visible: Sud.Nachisomerisierungszeit > 0.0
                             precision: 0
-                            value: Brauhelfer.sud.Nachisomerisierungszeit
+                            value: Sud.Nachisomerisierungszeit
                         }
                         LabelUnit {
-                            visible: Brauhelfer.sud.Nachisomerisierungszeit > 0.0
+                            visible: Sud.Nachisomerisierungszeit > 0.0
                             text: qsTr("min")
                         }
                     }
@@ -903,7 +903,7 @@ PageBase {
                     }
                     Repeater {
                         id: repeaterHopfengabenAusschlagen
-                        model: Brauhelfer.sud.modelHopfengaben
+                        model: Sud.modelHopfengaben
                         delegate: RowLayout {
                             Layout.leftMargin: 8
                             spacing: 16
@@ -935,9 +935,9 @@ PageBase {
                         opacity: enabled ? app.config.textOpacityFull : app.config.textOpacityDisabled
                         placeholderText: qsTr("Bemerkung Kochen")
                         textFormat: Text.RichText
-                        text: Brauhelfer.sud.BemerkungZutatenKochen
+                        text: Sud.BemerkungZutatenKochen
                         onLinkActivated: (link) => Qt.openUrlExternally(link)
-                        onTextChanged: if (activeFocus) Brauhelfer.sud.BemerkungZutatenKochen = text
+                        onTextChanged: if (activeFocus) Sud.BemerkungZutatenKochen = text
                     }
                 }
             }
@@ -953,13 +953,13 @@ PageBase {
 
                     LabelPrim {
                         Layout.fillWidth: true
-                        visible: Brauhelfer.sud.highGravityFaktor > 0.0
+                        visible: Sud.highGravityFaktor > 0.0
                         font.bold: true
                         text: qsTr("High-Gravity Verdünnung")
                     }
                     ColumnLayout {
                         Layout.leftMargin: 8
-                        visible: Brauhelfer.sud.highGravityFaktor > 0.0
+                        visible: Sud.highGravityFaktor > 0.0
                         RowLayout {
                             spacing: 16
                             LabelPrim {
@@ -967,14 +967,14 @@ PageBase {
                                 text: qsTr("Wassermenge")
                             }
                             LabelNumber {
-                                value: Brauhelfer.sud.MengeSollHgf
+                                value: Sud.MengeSollHgf
                             }
                             LabelUnit {
                                 text: qsTr("L")
                             }
                         }
                         Repeater {
-                            model: Brauhelfer.sud.modelWasseraufbereitung
+                            model: Sud.modelWasseraufbereitung
                             delegate: RowLayout {
                                 spacing: 16
                                 LabelPrim {
@@ -983,7 +983,7 @@ PageBase {
                                 }
                                 LabelNumber {
                                     precision: 2
-                                    value: model.Menge * Brauhelfer.sud.WasserHgf
+                                    value: model.Menge * Sud.WasserHgf
                                 }
                                 LabelUnit {
                                     text: app.defs.einheiten[model.Einheit]
@@ -1007,7 +1007,7 @@ PageBase {
                         }
                         LabelPlato {
                             id: lblSWSollAnstellen
-                            value: Brauhelfer.sud.SWSollAnstellen
+                            value: Sud.SWSollAnstellen
                         }
                         LabelUnit {
                             text: qsTr("°P")
@@ -1039,10 +1039,10 @@ PageBase {
                         LabelNumber {
                             id: lblWasserverschneidung
                             visible: value > 0
-                            value: BierCalc.verschneidung(Brauhelfer.sud.SWAnstellen,
-                                                                 Brauhelfer.sud.SWSollAnstellen,
+                            value: BierCalc.verschneidung(Sud.SWAnstellen,
+                                                                 Sud.SWSollAnstellen,
                                                                  0.0,
-                                                                 Brauhelfer.sud.WuerzemengeKochende * (1 + Brauhelfer.sud.highGravityFaktor/100))
+                                                                 Sud.WuerzemengeKochende * (1 + Sud.highGravityFaktor/100))
                         }
                         LabelUnit {
                             visible: lblWasserverschneidung.visible
@@ -1054,8 +1054,8 @@ PageBase {
                         }
                         TextFieldSw {
                             enabled: !page.readOnly
-                            value: Brauhelfer.sud.SWAnstellen
-                            onNewValue: (value) => Brauhelfer.sud.SWAnstellen = value
+                            value: Sud.SWAnstellen
+                            onNewValue: (value) => Sud.SWAnstellen = value
                         }
                         LabelUnit {
                             text: qsTr("°P")
@@ -1080,8 +1080,8 @@ PageBase {
                         TextFieldVolume {
                             enabled: !page.readOnly
                             useDialog: false
-                            value: Brauhelfer.sud.WuerzemengeKochende
-                            onNewValue: (value) => Brauhelfer.sud.WuerzemengeKochende = value
+                            value: Sud.WuerzemengeKochende
+                            onNewValue: (value) => Sud.WuerzemengeKochende = value
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -1091,7 +1091,7 @@ PageBase {
                             text: qsTr("Verlust")
                         }
                         LabelNumber {
-                            value: Brauhelfer.sud.WuerzemengeVorHopfenseihen - Brauhelfer.sud.WuerzemengeKochende
+                            value: Sud.WuerzemengeVorHopfenseihen - Sud.WuerzemengeKochende
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -1104,8 +1104,8 @@ PageBase {
                             enabled: !page.readOnly
                             useDialog: false
                             precision: 2
-                            value: Brauhelfer.sud.MengeHefestarter
-                            onNewValue: (value) => Brauhelfer.sud.MengeHefestarter = value
+                            value: Sud.MengeHefestarter
+                            onNewValue: (value) => Sud.MengeHefestarter = value
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -1115,8 +1115,8 @@ PageBase {
                         }
                         TextFieldSw {
                             enabled: !page.readOnly
-                            value: Brauhelfer.sud.SWHefestarter
-                            onNewValue: (value) => Brauhelfer.sud.SWHefestarter = value
+                            value: Sud.SWHefestarter
+                            onNewValue: (value) => Sud.SWHefestarter = value
                         }
                         LabelUnit {
                             text: qsTr("°P")
@@ -1129,8 +1129,8 @@ PageBase {
                             enabled: !page.readOnly
                             useDialog: false
                             precision: 2
-                            value: Brauhelfer.sud.VerduennungAnstellen
-                            onNewValue: (value) => Brauhelfer.sud.VerduennungAnstellen = value
+                            value: Sud.VerduennungAnstellen
+                            onNewValue: (value) => Sud.VerduennungAnstellen = value
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -1142,8 +1142,8 @@ PageBase {
                         TextFieldVolume {
                             enabled: !page.readOnly
                             useDialog: false
-                            value: Brauhelfer.sud.WuerzemengeAnstellenTotal
-                            onNewValue: (value) => Brauhelfer.sud.WuerzemengeAnstellenTotal = value
+                            value: Sud.WuerzemengeAnstellenTotal
+                            onNewValue: (value) => Sud.WuerzemengeAnstellenTotal = value
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -1154,8 +1154,8 @@ PageBase {
                         }
                         LabelNumber {
                             value: {
-                                var c = BierCalc.speise(Brauhelfer.sud.CO2, Brauhelfer.sud.SWAnstellen, 3.0, 3.0, 20.0)
-                                return c * Brauhelfer.sud.WuerzemengeAnstellenTotal/(1+c)
+                                var c = BierCalc.speise(Sud.CO2, Sud.SWAnstellen, 3.0, 3.0, 20.0)
+                                return c * Sud.WuerzemengeAnstellenTotal/(1+c)
                             }
                         }
                         LabelUnit {
@@ -1169,8 +1169,8 @@ PageBase {
                             enabled: !page.readOnly
                             useDialog: false
                             precision: 2
-                            value: Brauhelfer.sud.Speisemenge
-                            onNewValue: (value) => Brauhelfer.sud.Speisemenge = value
+                            value: Sud.Speisemenge
+                            onNewValue: (value) => Sud.Speisemenge = value
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -1182,8 +1182,8 @@ PageBase {
                         TextFieldVolume {
                             enabled: !page.readOnly
                             useDialog: false
-                            value: Brauhelfer.sud.WuerzemengeAnstellen
-                            onNewValue: (value) => Brauhelfer.sud.WuerzemengeAnstellen = value
+                            value: Sud.WuerzemengeAnstellen
+                            onNewValue: (value) => Sud.WuerzemengeAnstellen = value
                         }
                         LabelUnit {
                             text: qsTr("L")
@@ -1201,7 +1201,7 @@ PageBase {
                             text: qsTr("Effektive Sudhausausbeute")
                         }
                         LabelNumber {
-                            value: Brauhelfer.sud.erg_EffektiveAusbeute
+                            value: Sud.erg_EffektiveAusbeute
                         }
                         LabelUnit {
                             text: qsTr("%")
@@ -1212,7 +1212,7 @@ PageBase {
                             text: qsTr("Aus Rezept")
                         }
                         LabelNumber {
-                            value: Brauhelfer.sud.Sudhausausbeute
+                            value: Sud.Sudhausausbeute
                         }
                         LabelUnit {
                             text: qsTr("%")
@@ -1237,7 +1237,7 @@ PageBase {
                     }
                     Repeater {
                         id: repeaterHefe
-                        model: Brauhelfer.sud.modelHefegaben
+                        model: Sud.modelHefegaben
                         delegate: ColumnLayout {
                             Layout.leftMargin: 8
                             RowLayout {
@@ -1270,7 +1270,7 @@ PageBase {
                     Repeater {
                         id: repeaterModelWeitereZutatenGabenGaerung
                         model: ProxyModel {
-                            sourceModel: Brauhelfer.sud.modelWeitereZutatenGaben
+                            sourceModel: Sud.modelWeitereZutatenGaben
                             filterKeyColumn: fieldIndex("Zeitpunkt")
                             filterRegularExpression: /0/
                         }
@@ -1312,9 +1312,9 @@ PageBase {
                         opacity: enabled ? app.config.textOpacityFull : app.config.textOpacityDisabled
                         placeholderText: qsTr("Bemerkung Gärung")
                         textFormat: Text.RichText
-                        text: Brauhelfer.sud.BemerkungZutatenGaerung
+                        text: Sud.BemerkungZutatenGaerung
                         onLinkActivated: (link) => Qt.openUrlExternally(link)
-                        onTextChanged: if (activeFocus) Brauhelfer.sud.BemerkungZutatenGaerung = text
+                        onTextChanged: if (activeFocus) Sud.BemerkungZutatenGaerung = text
                     }
                 }
             }
@@ -1338,7 +1338,7 @@ PageBase {
                         Layout.columnSpan: 2
                         Layout.fillWidth: true
                         enabled: !page.readOnly
-                        date: Brauhelfer.sud.Status >= Brauhelfer.Gebraut ? Brauhelfer.sud.Braudatum : new Date()
+                        date: Sud.Status >= Brauhelfer.Gebraut ? Sud.Braudatum : new Date()
                         onNewDate: (date) => this.date = date
                     }
                     LabelPrim {
@@ -1348,8 +1348,8 @@ PageBase {
                     TextFieldNumber {
                         enabled: !page.readOnly
                         precision: 2
-                        value: Brauhelfer.sud.KostenWasserStrom
-                        onNewValue: (value) => Brauhelfer.sud.KostenWasserStrom = value
+                        value: Sud.KostenWasserStrom
+                        onNewValue: (value) => Sud.KostenWasserStrom = value
                     }
                     LabelUnit {
                         text: Qt.locale().currencySymbol()
@@ -1360,7 +1360,7 @@ PageBase {
                     }
                     LabelNumber {
                         precision: 2
-                        value: Brauhelfer.sud.erg_Preis
+                        value: Sud.erg_Preis
                     }
                     LabelUnit {
                         text: Qt.locale().currencySymbol() + "/" + qsTr("L")
@@ -1370,8 +1370,8 @@ PageBase {
                         Layout.fillWidth: true
                         enabled: !page.readOnly
                         text: qsTr("Sud für Durchschnittsberechnung ignorieren")
-                        checked: Brauhelfer.sud.AusbeuteIgnorieren
-                        onClicked: Brauhelfer.sud.AusbeuteIgnorieren = checked
+                        checked: Sud.AusbeuteIgnorieren
+                        onClicked: Sud.AusbeuteIgnorieren = checked
                     }
                     TextAreaBase {
                         Layout.columnSpan: 3
@@ -1379,9 +1379,9 @@ PageBase {
                         opacity: enabled ? app.config.textOpacityFull : app.config.textOpacityDisabled
                         placeholderText: qsTr("Bemerkung Brauen")
                         textFormat: Text.RichText
-                        text: Brauhelfer.sud.BemerkungBrauen
+                        text: Sud.BemerkungBrauen
                         onLinkActivated: (link) => Qt.openUrlExternally(link)
-                        onTextChanged: if (activeFocus) Brauhelfer.sud.BemerkungBrauen = text
+                        onTextChanged: if (activeFocus) Sud.BemerkungBrauen = text
                     }
                     ButtonBase {
                         Layout.columnSpan: 3
