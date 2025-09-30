@@ -15,7 +15,7 @@ QString QmlUtils::toLocalFile(const QUrl &url)
     return QJniObject::callStaticObjectMethod(
         "org/kleinerbrauhelfer/app/PathUtil", "getPath",
         "(Landroid/content/Context;Landroid/net/Uri;)Ljava/lang/String;",
-        QtAndroidPrivate::context(), uri.object()).toString();
+        QtAndroidPrivate::context().object(), uri.object()).toString();
   #else
     return QDir::toNativeSeparators(url.toLocalFile());
   #endif
