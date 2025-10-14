@@ -39,7 +39,7 @@ ToolBar {
                 id: lblMain
                 horizontalAlignment: Label.AlignHCenter
                 Layout.fillWidth: true
-                color: Material.background
+                color: "White" // Material.background
                 font.pointSize: 20 * app.settings.scalingfactor
                 font.bold: true
                 elide: Text.ElideRight
@@ -48,7 +48,7 @@ ToolBar {
                 id: lblSub
                 horizontalAlignment: Label.AlignHCenter
                 Layout.fillWidth: true
-                color: Material.background
+                color: "White" // Material.background
                 font.pointSize: 16 * app.settings.scalingfactor
                 elide: Text.ElideRight
             }

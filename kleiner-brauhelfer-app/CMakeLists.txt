@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 # Define project organization, name, version and build type of the kleiner-brauhelfer-core library
 set(ORGANIZATION kleiner-brauhelfer)
 set(TARGET kleiner-brauhelfer-app)
-set(VERSION 2.6.1)
+set(VERSION 2.6.2)
 set(BUILD_TYPE STATIC)
 
 # Set name, version and language of the project
@@ -24,6 +24,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Xml
     Core5Compat
     LinguistTools
+    CorePrivate
 )
 
 # Setup project-wide defaults to a standard arrangement
@@ -187,4 +188,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::NetworkAuth
     Qt6::Xml
     Qt6::Core5Compat
+    Qt6::CorePrivate
 )

@@ -18,7 +18,7 @@ SyncServiceDropbox::SyncServiceDropbox(QSettings *settings) :
     _netManager = new QNetworkAccessManager(this);
 
     _oauth2->setAuthorizationUrl(QUrl(QStringLiteral("https://www.dropbox.com/oauth2/authorize")));
-    _oauth2->setAccessTokenUrl(QUrl(QStringLiteral("https://api.dropboxapi.com/oauth2/token")));
+    _oauth2->setTokenUrl(QUrl(QStringLiteral("https://api.dropboxapi.com/oauth2/token")));
     _oauth2->setClientIdentifier(appKey());
     _oauth2->setClientIdentifierSharedKey(appSecret());
     _oauth2->setRefreshToken(refreshToken());
@@ -38,7 +38,7 @@ SyncServiceDropbox::SyncServiceDropbox(QSettings *settings) :
             break;
         }
     });
-    connect(_oauth2, &QAbstractOAuth2::error, this, &SyncServiceDropbox::authError);
+    connect(_oauth2, &QAbstractOAuth2::serverReportedErrorOccurred, this, &SyncServiceDropbox::authError);
     connect(_oauth2, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, &QDesktopServices::openUrl);
     connect(_oauth2, &QOAuth2AuthorizationCodeFlow::granted, this, [this]()
     {
@@ -59,12 +59,12 @@ void SyncServiceDropbox::grantAccess()
     if (_oauth2->refreshToken().isEmpty())
         _oauth2->grant();
     else
-        _oauth2->refreshAccessToken();
+        _oauth2->refreshTokens();
 }
 
 void SyncServiceDropbox::refreshAccess()
 {
-    _oauth2->refreshAccessToken();
+    _oauth2->refreshTokens();
 }
 
 bool SyncServiceDropbox::downloadFile()
@@ -75,7 +75,7 @@ bool SyncServiceDropbox::downloadFile()
     QUrl url(QStringLiteral("https://content.dropboxapi.com/2/files/download"));
     req.setUrl(url);
     req.setRawHeader("Authorization", QStringLiteral("Bearer %1").arg(accessToken()).toUtf8());
-    QString json = QStringLiteral("{\"path\": \"%1\"}").arg((filePathServer().compare(QStringLiteral("/")) == 0) ? QStringLiteral("") : filePathServer());
+    QString json = QStringLiteral("{\"path\": \"%1\"}").arg((filePathServer().compare(QStringLiteral("/")) == 0) ? QString("") : filePathServer());
     req.setRawHeader("Dropbox-API-arg", json.toUtf8());
 
     QEventLoop loop;
@@ -119,7 +119,7 @@ bool SyncServiceDropbox::uploadFile()
         req.setRawHeader("Authorization", QStringLiteral("Bearer %1").arg(accessToken()).toUtf8());
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/octet-stream");
         QString json = QStringLiteral("{\"path\": \"%1\",\"mode\": \"overwrite\",\"autorename\": true,\"mute\": true}")
-                           .arg((filePathServer().compare(QStringLiteral("/")) == 0) ? QStringLiteral("") : filePathServer());
+                           .arg((filePathServer().compare(QStringLiteral("/")) == 0) ? QString("") : filePathServer());
         req.setRawHeader("Dropbox-API-arg", json.toUtf8());
 
         QEventLoop loop;
@@ -149,7 +149,7 @@ QString SyncServiceDropbox::getServerRevision(QNetworkReply::NetworkError* reply
     req.setRawHeader("Authorization", QStringLiteral("Bearer %1").arg(accessToken()).toUtf8());
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-    QString json = QStringLiteral("{\"path\": \"%1\"}").arg((filePathServer().compare(QStringLiteral("/")) == 0) ? QStringLiteral("") : filePathServer());
+    QString json = QStringLiteral("{\"path\": \"%1\"}").arg((filePathServer().compare(QStringLiteral("/")) == 0) ? QString("") : filePathServer());
 
     QEventLoop loop;
     _netReply = _netManager->post(req, json.toUtf8());
@@ -242,9 +242,9 @@ bool SyncServiceDropbox::synchronize(SyncDirection direction)
     if (replyCode == QNetworkReply::AuthenticationRequiredError)
     {
         QEventLoop loop;
-        _oauth2->refreshAccessToken();
+        _oauth2->refreshTokens();
         connect(_oauth2, &QAbstractOAuth::granted, &loop, &QEventLoop::quit);
-        connect(_oauth2, &QAbstractOAuth2::error, &loop, &QEventLoop::quit);
+        connect(_oauth2, &QAbstractOAuth2::serverReportedErrorOccurred, &loop, &QEventLoop::quit);
         loop.exec();
         revision = getServerRevision();
     }

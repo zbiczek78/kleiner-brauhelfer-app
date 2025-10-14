@@ -16,10 +16,9 @@ SyncServiceGoogle::SyncServiceGoogle(QSettings *settings) :
     setFilePath(cacheFilePath(fileId()));
     _oauth2 = new QOAuth2AuthorizationCodeFlow(this);
     _netManager = new QNetworkAccessManager(this);
-
     _oauth2->setAuthorizationUrl(QUrl(QStringLiteral("https://accounts.google.com/o/oauth2/v2/auth")));
-    _oauth2->setAccessTokenUrl(QUrl(QStringLiteral("https://oauth2.googleapis.com/token")));
-    _oauth2->setScope(QStringLiteral("https://www.googleapis.com/auth/drive"));
+    _oauth2->setTokenUrl(QUrl(QStringLiteral("https://oauth2.googleapis.com/token")));
+    _oauth2->setRequestedScopeTokens({QByteArray("https://www.googleapis.com/auth/drive")});
     _oauth2->setClientIdentifier(clientId());
     _oauth2->setClientIdentifierSharedKey(clientSecret());
     _oauth2->setRefreshToken(refreshToken());
@@ -42,7 +41,7 @@ SyncServiceGoogle::SyncServiceGoogle(QSettings *settings) :
             break;
         }
     });
-    connect(_oauth2, &QAbstractOAuth2::error, this, &SyncServiceGoogle::authError);
+    connect(_oauth2, &QAbstractOAuth2::serverReportedErrorOccurred, this, &SyncServiceGoogle::authError);
     connect(_oauth2, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, &QDesktopServices::openUrl);
     connect(_oauth2, &QOAuth2AuthorizationCodeFlow::granted, this, [this]()
     {
@@ -63,12 +62,12 @@ void SyncServiceGoogle::grantAccess()
     if (_oauth2->refreshToken().isEmpty())
         _oauth2->grant();
     else
-        _oauth2->refreshAccessToken();
+        _oauth2->refreshTokens();
 }
 
 void SyncServiceGoogle::refreshAccess()
 {
-    _oauth2->refreshAccessToken();
+    _oauth2->refreshTokens();
 }
 
 bool SyncServiceGoogle::retrieveFileId()
@@ -101,7 +100,7 @@ bool SyncServiceGoogle::retrieveFileId()
             QJsonArray files = json.value(QStringLiteral("files")).toArray();
             if (files.count() == 0)
             {
-                setFileId(QStringLiteral(""));
+                setFileId(QString(""));
                 emit message(QtMsgType::QtWarningMsg, QStringLiteral("File not found."));
             }
             else if (files.count() == 1)
@@ -292,9 +291,9 @@ bool SyncServiceGoogle::synchronize(SyncDirection direction)
     if (replyCode == QNetworkReply::AuthenticationRequiredError)
     {
         QEventLoop loop;
-        _oauth2->refreshAccessToken();
+        _oauth2->refreshTokens();
         connect(_oauth2, &QAbstractOAuth::granted, &loop, &QEventLoop::quit);
-        connect(_oauth2, &QAbstractOAuth2::error, &loop, &QEventLoop::quit);
+        connect(_oauth2, &QAbstractOAuth2::serverReportedErrorOccurred, &loop, &QEventLoop::quit);
         loop.exec();
         revision = getServerRevision();
     }
