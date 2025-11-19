@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 
   #ifdef Q_OS_ANDROID
     // check permissions
-    if (QtAndroidPrivate::androidSdkVersion() < 33)
+    if (QtAndroidPrivate::androidSdkVersion() < 29)
     {
         if (QtAndroidPrivate::checkPermission(QStringLiteral("android.permission.READ_EXTERNAL_STORAGE")).result() != QtAndroidPrivate::Authorized)
             QtAndroidPrivate::requestPermission(QStringLiteral("android.permission.READ_EXTERNAL_STORAGE")).result();

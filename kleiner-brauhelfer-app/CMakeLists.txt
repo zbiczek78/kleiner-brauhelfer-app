@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 # Define project organization, name, version and build type of the kleiner-brauhelfer-core library
 set(ORGANIZATION kleiner-brauhelfer)
 set(TARGET kleiner-brauhelfer-app)
+set(VERSION_CODE 20602)
 set(VERSION 2.6.2)
 set(BUILD_TYPE STATIC)
 
@@ -172,6 +173,10 @@ endif()
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
     QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android
 )
+
+# Set Android version code and version name
+set_target_properties(${PROJECT_NAME} PROPERTIES QT_ANDROID_VERSION_CODE ${VERSION_CODE})
+set_target_properties(${PROJECT_NAME} PROPERTIES QT_ANDROID_VERSION_NAME ${VERSION})
 
 # Link the core and Qt libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
