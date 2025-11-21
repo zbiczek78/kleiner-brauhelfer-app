@@ -17,6 +17,14 @@ public class PathUtil {
                 return "/storage/" + docIdParts[0] + "/" + uriParts[uriParts.length-1];
             }
         }
+        else {
+            final String docId = DocumentsContract.getDocumentId(uri);
+            final String uriStr = uri.toString();
+            int pos = uriStr.indexOf(docId);
+            if (pos != -1) {
+                return uriStr.substring(pos + docId.length());
+            }
+        }
         return uri.toString();
     }
 
@@ -26,5 +34,17 @@ public class PathUtil {
 
     private static boolean isPrimaryStorage(final String id) {
         return "primary".equalsIgnoreCase(id);
+    }
+
+    private static boolean isDownloadsDocument(final Uri uri) {
+        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
+    }
+
+    private static boolean isMediaDocument(Uri uri) {
+        return "com.android.providers.media.documents".equals(uri.getAuthority());
+    }
+
+    private static boolean isGooglePhotosUri(Uri uri) {
+        return "com.google.android.apps.photos.content".equals(uri.getAuthority());
     }
 }

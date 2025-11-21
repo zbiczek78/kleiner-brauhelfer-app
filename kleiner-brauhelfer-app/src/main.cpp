@@ -1,10 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQuickStyle>
 #include <QSettings>
-#ifdef Q_OS_ANDROID
-  #include <QtCore/private/qandroidextras_p.h>
-#endif
-
 #include "languageselector.h"
 #include "brauhelfer.h"
 #include "biercalc.h"
@@ -29,6 +26,8 @@ int main(int argc, char *argv[])
 
     QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
+
+    QQuickStyle::setStyle("Material");
 
     app.setOrganizationName(QStringLiteral(ORGANIZATION));
     app.setApplicationName(QStringLiteral(TARGET));
@@ -73,30 +72,6 @@ int main(int argc, char *argv[])
     qmlRegisterUncreatableType<ModelWasser>("ModelWasser", 1, 0, "ModelWasser", QStringLiteral("not creatable"));
     qmlRegisterUncreatableType<ModelEtiketten>("ModelEtiketten", 1, 0, "ModelEtiketten", QStringLiteral("not creatable"));
     qmlRegisterUncreatableType<ModelTags>("ModelTags", 1, 0, "ModelTags", QStringLiteral("not creatable"));
-
-  #ifdef Q_OS_ANDROID
-    // check permissions
-    if (QtAndroidPrivate::androidSdkVersion() < 29)
-    {
-        if (QtAndroidPrivate::checkPermission(QStringLiteral("android.permission.READ_EXTERNAL_STORAGE")).result() != QtAndroidPrivate::Authorized)
-            QtAndroidPrivate::requestPermission(QStringLiteral("android.permission.READ_EXTERNAL_STORAGE")).result();
-        if (QtAndroidPrivate::checkPermission(QStringLiteral("android.permission.WRITE_EXTERNAL_STORAGE")).result() != QtAndroidPrivate::Authorized)
-            QtAndroidPrivate::requestPermission(QStringLiteral("android.permission.WRITE_EXTERNAL_STORAGE")).result();
-    }
-    else
-    {
-        if (QtAndroidPrivate::checkPermission(QStringLiteral("android.permission.MANAGE_EXTERNAL_STORAGE")).result() != QtAndroidPrivate::Authorized)
-            QtAndroidPrivate::requestPermission(QStringLiteral("android.permission.MANAGE_EXTERNAL_STORAGE")).result();
-        if(!QJniObject::callStaticMethod<jboolean>("android/os/Environment", "isExternalStorageManager"))
-        {
-            QJniObject filepermit = QJniObject::getStaticObjectField("android/provider/Settings", "ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION", "Ljava/lang/String;");
-            QJniObject pkgName = QJniObject::fromString(QStringLiteral("package:org.kleinerbrauhelfer.app"));
-            QJniObject parsedUri = QJniObject::callStaticObjectMethod("android/net/Uri", "parse", "(Ljava/lang/String;)Landroid/net/Uri;", pkgName.object<jstring>());
-            QJniObject intent("android/content/Intent", "(Ljava/lang/String;Landroid/net/Uri;)V", filepermit.object<jstring>(), parsedUri.object());
-            QtAndroidPrivate::startActivity(intent, 0);
-        }
-    }
-  #endif
 
     // load QML and start
     engine.load(QUrl(QStringLiteral("qrc:/app/qml/main.qml")));

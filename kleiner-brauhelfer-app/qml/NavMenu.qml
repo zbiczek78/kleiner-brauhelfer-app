@@ -9,9 +9,8 @@ Drawer {
 
     z: 1
     Material.elevation: 4
-    width: layout.width
+    width: Math.min(parent.width*0.66, 500)
     height: parent.height
-    topPadding: 0
     rightPadding: 0
 
     Flickable {
@@ -22,15 +21,14 @@ Drawer {
 
         ColumnLayout {
             id: layout
-            focus: false
             anchors.top: parent.top
             anchors.left: parent.left
+            anchors.right: parent.right
             spacing: 0
 
             Rectangle {
-                Layout.preferredWidth: childrenRect.width
+                Layout.fillWidth: true
                 Layout.preferredHeight: childrenRect.height
-                topRightRadius: 12
                 color: Material.primary
                 MouseArea {
                    anchors.fill: parent
@@ -38,8 +36,7 @@ Drawer {
                 }
                 RowLayout {
                     Image {
-                        Layout.topMargin: drawer.SafeArea.margins.top + 4
-                        Layout.bottomMargin: 4
+                        Layout.margins: 4
                         width: 48 * app.settings.scalingfactor
                         height: width
                         source: "qrc:/images/logo.png"
