@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
-import Qt.labs.platform
+import QtQuick.Dialogs
 
 import "../common"
 import qmlutils
@@ -134,7 +134,7 @@ PageBase {
                                     id: openDialog
                                     title: qsTr("Pfad zur Datenbank")
                                     onAccepted: {
-                                        tfDatabasePathLocal.text = Utils.toLocalFile(decodeURIComponent(file))
+                                        tfDatabasePathLocal.text = Utils.toLocalFile(decodeURIComponent(selectedFile))
                                         SyncService.syncServiceLocal.filePathLocal = tfDatabasePathLocal.text
                                         layout.tryConnect()
                                     }

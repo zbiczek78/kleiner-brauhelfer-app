@@ -13,19 +13,16 @@ Pane {
 
     z: 1
     Material.elevation: 4
-    height: layout.height
-    padding: 0
     focusPolicy: Qt.StrongFocus
 
     RowLayout {
         id: layout
-        height: 32
         anchors.fill: parent
 
         ToolButton {
             Layout.leftMargin: 8
-            implicitWidth: parent.height
-            implicitHeight: parent.height
+            implicitWidth: 24
+            implicitHeight: 24
             onClicked: clickedLeft()
             enabled: swipeView && swipeView.currentIndex > 0
             contentItem: Image {
@@ -58,8 +55,8 @@ Pane {
 
         ToolButton {
             Layout.rightMargin: 8
-            implicitWidth: parent.height
-            implicitHeight: parent.height
+            implicitWidth: 24
+            implicitHeight: 24
             onClicked: clickedRight()
             enabled: swipeView && swipeView.currentIndex < swipeView.count - 1
             contentItem: Image {

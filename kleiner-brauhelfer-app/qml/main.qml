@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import Qt.labs.platform
 import QtCore
 
@@ -26,6 +27,12 @@ ApplicationWindow {
     width: 360
     height: 640
     visible: true
+
+    Material.theme: Material.Light
+    Material.primary: Material.Brown
+    Material.foreground: Material.Black
+    Material.background: Material.White
+    Material.accent: Material.DeepOrange
 
     Config {
         id: config

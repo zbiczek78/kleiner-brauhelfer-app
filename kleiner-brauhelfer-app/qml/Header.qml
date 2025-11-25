@@ -15,12 +15,9 @@ ToolBar {
 
     z: 1
     Material.elevation: 4
-    height: layout.implicitHeight
-    padding: 0
     focusPolicy: Qt.StrongFocus
 
     RowLayout {
-        id: layout
         anchors.fill: parent
 
         ToolButton {
@@ -39,7 +36,6 @@ ToolBar {
                 id: lblMain
                 horizontalAlignment: Label.AlignHCenter
                 Layout.fillWidth: true
-                color: "White" // Material.background
                 font.pointSize: 20 * app.settings.scalingfactor
                 font.bold: true
                 elide: Text.ElideRight
@@ -48,7 +44,6 @@ ToolBar {
                 id: lblSub
                 horizontalAlignment: Label.AlignHCenter
                 Layout.fillWidth: true
-                color: "White" // Material.background
                 font.pointSize: 16 * app.settings.scalingfactor
                 elide: Text.ElideRight
             }
