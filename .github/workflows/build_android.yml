@@ -1,0 +1,63 @@
+name: Build Android APK (Qt/C++)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # Pozwala uruchomić workflow ręcznie z interfejsu GitHub
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest # GitHub Actions używa maszyn wirtualnych z systemem Ubuntu
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (Required for Android build tools)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Android SDK and NDK (required for Qt)
+        uses: android-actions/setup-android@v2
+
+      - name: Install Qt 6 dependencies and tools
+        # Niestety, GitHub nie ma pre-instalowanego Qt 6 z modułami Androida. 
+        # Musimy użyć niestandardowej akcji do instalacji Qt.
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: 6.10.0 # Możesz zmienić na inną wersję Qt 6
+          arch: android_arm64_v8a
+          dir: ${{ runner.temp }}/Qt # Instalacja tymczasowa
+          
+      - name: Configure Qt Environment variables
+        run: |
+          echo "QT_DIR=${{ runner.temp }}/Qt/6.10.0/android_arm64_v8a/bin" >> $GITHUB_ENV
+          echo "${{ runner.temp }}/Qt/6.10.0/android_arm64_v8a/bin" >> $GITHUB_PATH
+          # Upewnij się, że qmake jest dostępny
+          which qmake
+
+      - name: Run qmake to generate build files
+        # Aplikacja używa pliku .pro, więc używamy qmake
+        run: qmake kleiner-brauhelfer-app.pro -spec android-clang 
+        working-directory: ${{ github.workspace }}
+
+      - name: Build the Android application
+        # Używamy make do kompilacji
+        run: make
+        working-directory: ${{ github.workspace }}
+
+      - name: Locate the generated APK file
+        run: find . -name "*.apk"
+        # To pokaże dokładną ścieżkę do wygenerowanego pliku APK
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kleiner-brauhelfer-app-android-apk
+          path: build/*.apk # Ścieżka może się różnić, sprawdź wynik poprzedniego kroku
