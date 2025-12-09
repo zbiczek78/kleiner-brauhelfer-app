@@ -1,59 +1,58 @@
-name: Build Android APK (Qt/C++)
+name: Build Android APK (Debug)
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  build-android:
+  build-android-debug:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17 (Required for Android build tools)
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Android SDK and NDK
+      - name: Install Android SDK + NDK
         uses: android-actions/setup-android@v2
 
-      - name: Install Qt 6 dependencies and tools
-        uses: jurplel/install-qt-action@v3
+      - name: Install Qt 6 for Android
+        uses: jurplel/install-qt-action@v4
         with:
-          version: 6.6.0
-          arch: android_arm64_v8a
-          dir: ${{ runner.temp }}/Qt
-          # Dodajemy wymagane moduły jawnie:
-          modules: 'qtwebengine qtwebchannel qtpositioning'
+          version: '6.6.0'
+          target: 'android'
+          arch: 'android_armv7'
+          modules: 'qtwebchannel qtpositioning'
+          dir: '${{ runner.temp }}/Qt'
 
-      - name: Configure Qt Environment variables
+      - name: Configure Qt paths
         run: |
-          echo "QT_DIR=${{ runner.temp }}/Qt/6.6.0/android_arm64_v8a/bin" >> $GITHUB_ENV
-          echo "${{ runner.temp }}/Qt/6.6.0/android_arm64_v8a/bin" >> $GITHUB_PATH
-          which qmake
+          echo "${{ runner.temp }}/Qt/6.6.0/android_armv7/bin" >> $GITHUB_PATH
 
-      - name: Run qmake to generate build files
-        run: qmake kleiner-brauhelfer-app.pro -spec android-clang 
-        working-directory: ${{ github.workspace }}
+      - name: Configure (qmake)
+        run: |
+          mkdir build-android
+          cd build-android
+          qmake ../kleiner-brauhelfer-app.pro -spec android-clang
 
-      - name: Build the Android application
-        run: make
-        working-directory: ${{ github.workspace }}
+      - name: Build (make)
+        run: |
+          cd build-android
+          make -j$(nproc)
 
-      - name: Locate the generated APK file
+      - name: Find APK
         run: find . -name "*.apk"
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: kleiner-brauhelfer-app-android-apk
-          path: build/*.apk
+          name: kleiner-brauhelfer-debug
+          path: "**/*.apk"
