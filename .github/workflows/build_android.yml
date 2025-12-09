@@ -26,19 +26,19 @@ jobs:
       - name: Install Android SDK and NDK
         uses: android-actions/setup-android@v2
 
-      - name: Install Qt 6 dependencies and tools
+      - name: Install Qt 6.7.0 dependencies and tools
         uses: jurplel/install-qt-action@v3
         with:
-          version: 6.6.0
+          version: 6.7.0 # Zmieniono z 6.6.0 na 6.7.0
           arch: android_arm64_v8a
           dir: ${{ runner.temp }}/Qt
-          # Dodajemy wymagane moduły jawnie:
           modules: 'qtwebengine qtwebchannel qtpositioning'
 
       - name: Configure Qt Environment variables
         run: |
-          echo "QT_DIR=${{ runner.temp }}/Qt/6.6.0/android_arm64_v8a/bin" >> $GITHUB_ENV
-          echo "${{ runner.temp }}/Qt/6.6.0/android_arm64_v8a/bin" >> $GITHUB_PATH
+          # Zaktualizuj ścieżki do nowej wersji 6.7.0
+          echo "QT_DIR=${{ runner.temp }}/Qt/6.7.0/android_arm64_v8a/bin" >> $GITHUB_ENV
+          echo "${{ runner.temp }}/Qt/6.7.0/android_arm64_v8a/bin" >> $GITHUB_PATH
           which qmake
 
       - name: Run qmake to generate build files
