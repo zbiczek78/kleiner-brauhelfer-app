@@ -1,4 +1,4 @@
-name: Build Android APK (Qt/C++) Manual AQT
+name: Build Android APK (Qt/C++)
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 17 (Required for Android build tools)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -25,40 +25,24 @@ jobs:
 
       - name: Install Android SDK and NDK
         uses: android-actions/setup-android@v2
-        # Ustawiamy zmienną środowiskową dla NDK (potrzebną później przez qmake)
+
+      - name: Install Qt 6 dependencies and tools
+        uses: jurplel/install-qt-action@v3
         with:
-          ndk-version: 25.1.8937393 # Konkretna stabilna wersja NDK
-
-      - name: Install aqtinstall tool via pip
-        run: pip install aqtinstall
-
-      - name: Create Qt install directory
-        run: mkdir -p ${{ runner.temp }}/Qt
-
-      - name: Manually install Qt 6.7.0 for Android
-        # Używamy aqt direkt do instalacji, określając OS, Target, Wersję, Architekture
-        run: >
-          aqt install-qt 
-          linux 
-          android 
-          6.7.0 
-          android_arm64_v8a 
-          --outputdir ${{ runner.temp }}/Qt
-          --archives qtwebengine,qtwebchannel,qtpositioning,qtbase,qtdeclarative
+          version: 6.6.0
+          arch: android_arm64_v8a
+          dir: ${{ runner.temp }}/Qt
+          # Dodajemy wymagane moduły jawnie:
+          modules: 'qtwebengine qtwebchannel qtpositioning'
 
       - name: Configure Qt Environment variables
         run: |
-          QT_DIR_BIN=${{ runner.temp }}/Qt/6.7.0/android_arm64_v8a/bin
-          echo "QT_DIR_BIN=$QT_DIR_BIN" >> $GITHUB_ENV
-          echo "$QT_DIR_BIN" >> $GITHUB_PATH
-          echo "CMAKE_PREFIX_PATH=$QT_DIR_BIN/../../" >> $GITHUB_ENV
-          # Sprawdzenie, czy qmake jest widoczny
+          echo "QT_DIR=${{ runner.temp }}/Qt/6.6.0/android_arm64_v8a/bin" >> $GITHUB_ENV
+          echo "${{ runner.temp }}/Qt/6.6.0/android_arm64_v8a/bin" >> $GITHUB_PATH
           which qmake
-          qmake -v
 
       - name: Run qmake to generate build files
-        # Używamy ścieżki do qmake jawnie
-        run: ${{ env.QT_DIR_BIN }}/qmake kleiner-brauhelfer-app.pro -spec android-clang 
+        run: qmake kleiner-brauhelfer-app.pro -spec android-clang 
         working-directory: ${{ github.workspace }}
 
       - name: Build the Android application
@@ -72,4 +56,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kleiner-brauhelfer-app-android-apk
-          path: '**/*.apk' # Używamy wildcard, żeby znaleźć APK gdziekolwiek jest
+          path: build/*.apk
