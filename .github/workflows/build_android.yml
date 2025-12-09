@@ -31,14 +31,14 @@ jobs:
         # Musimy użyć niestandardowej akcji do instalacji Qt.
         uses: jurplel/install-qt-action@v3
         with:
-          version: 6.10.0 # Możesz zmienić na inną wersję Qt 6
+          version: 6.6.0 # Możesz zmienić na inną wersję Qt 6
           arch: android_arm64_v8a
           dir: ${{ runner.temp }}/Qt # Instalacja tymczasowa
           
       - name: Configure Qt Environment variables
         run: |
-          echo "QT_DIR=${{ runner.temp }}/Qt/6.10.0/android_arm64_v8a/bin" >> $GITHUB_ENV
-          echo "${{ runner.temp }}/Qt/6.10.0/android_arm64_v8a/bin" >> $GITHUB_PATH
+          echo "QT_DIR=${{ runner.temp }}/Qt/6.6.0/android_arm64_v8a/bin" >> $GITHUB_ENV
+          echo "${{ runner.temp }}/Qt/6.6.0/android_arm64_v8a/bin" >> $GITHUB_PATH
           # Upewnij się, że qmake jest dostępny
           which qmake
 
