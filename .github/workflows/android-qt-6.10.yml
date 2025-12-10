@@ -1,4 +1,4 @@
-name: Android CI Build (Qt 6.5.3)
+name: Android CI Build (Qt 6.5.3) - DEBUG MODE
 
 on:
   push:
@@ -11,10 +11,13 @@ jobs:
     
     # Zmienne środowiskowe
     env:
-      QT_VERSION: 6.10.0
+      QT_VERSION: 6.5.3 
       BUILD_DIR: build-android
       PLATFORM_TARGET: android
       ARCH_TARGET: android_arm64_v8a 
+      # DODANO: Ustawienie zmiennych dla szczegółowych logów kompilacji
+      CMAKE_VERBOSE_MAKEFILE: ON
+      VERBOSE: 1
 
     steps:
     - name: Checkout code
@@ -27,14 +30,13 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
         
-    # Krok 2: Instalacja Qt, Android SDK i NDK (Użycie 'id' nie jest już potrzebne; używamy domyślnej ścieżki toolcache)
+    # Krok 2: Instalacja Qt, Android SDK i NDK
     - name: Install Qt and Android toolchain
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
         target: ${{ env.PLATFORM_TARGET }} 
         arch: ${{ env.ARCH_TARGET }}
-        # Wymuszamy instalację w katalogu toolcache, który jest przewidywalny
         dir: ${{ runner.tool_cache }}
         cached: true 
         
@@ -42,7 +44,7 @@ jobs:
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (Dynamiczne odnajdywanie ścieżki w toolcache)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (Odnajdywanie ścieżki w toolcache)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
@@ -53,7 +55,7 @@ jobs:
         # Użycie ls i basename do znalezienia dokładnej wersji folderu (np. 6.5.3-0)
         QT_VERSION_FOLDER=$(ls -d $QT_BASE_CACHE_DIR/*/ | head -n 1)
 
-        # Pełna ścieżka do zainstalowanego katalogu Qt (zwykle /opt/hostedtoolcache/Qt/6.5.3/6.5.3-0/android_arm64_v8a)
+        # Pełna ścieżka do zainstalowanego katalogu Qt
         QT_ROOT_DIR="${QT_VERSION_FOLDER}/${{ env.ARCH_TARGET }}"
         
         # Ścieżka do pliku toolchain
@@ -77,6 +79,7 @@ jobs:
     # Krok 5: Kompilacja i budowanie paczki Androida
     - name: Build Android package
       working-directory: ${{ env.BUILD_DIR }}
+      # Użycie zmiennych VERBOSE i CMAKE_VERBOSE_MAKEFILE z env
       run: cmake --build . --parallel $(nproc)
       
     # Krok 6: Upload wynikowego artefaktu (APK/AAB)
