@@ -1,4 +1,4 @@
-name: Android Qt 6.5.2 Build
+name: Android Qt 6.5.3 Build
 
 on:
   push:
@@ -12,9 +12,10 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      QT_VERSION: 6.5.2
+      QT_VERSION: 6.5.3
       ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
       ANDROID_NDK_VERSION: 23.1.7779620
+      QT_INSTALL_DIR: ${{ github.workspace }}/Qt
 
     steps:
       ############################################################
@@ -29,31 +30,20 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y python3 python3-pip unzip wget \
-                                  build-essential ninja-build \
-                                  mesa-common-dev libgl1-mesa-dev \
-                                  libxkbcommon-x11-dev libfontconfig1 \
-                                  fuse libxcb-cursor-dev
+          sudo apt-get install -y wget unzip build-essential ninja-build \
+                                  libgl1-mesa-dev libxkbcommon-x11-dev \
+                                  libfontconfig1 fuse libxcb-cursor-dev \
+                                  python3 python3-pip
 
       ############################################################
-      # 3️⃣ Install Qt 6.5.2 (Desktop + Android)
+      # 3️⃣ Download and install Qt Online Installer
       ############################################################
-      - name: Install aqtinstall
-        run: pip3 install "aqtinstall>=3.3.0"
-
-      # 3a. Desktop Qt MUST be installed first
-      - name: Install Qt Desktop 6.5.2 gcc_64
+      - name: Download Qt Online Installer
         run: |
-          aqt install-qt linux desktop $QT_VERSION gcc_64 \
-            --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth qtwebchannel qtpositioning qtserialport
-
-      # 3b. Android Qt arm64-v8a
-      - name: Install Qt Android 6.5.2 arm64-v8a
-        run: |
-          aqt install-qt linux android $QT_VERSION android_arm64_v8a \
-            --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth qtwebchannel qtpositioning qtserialport
+          wget https://download.qt.io/official_releases/online_installers/qt-unified-linux-x64-online.run -O qt-installer.run
+          chmod +x qt-installer.run
+          # Install silently to $QT_INSTALL_DIR
+          ./qt-installer.run --script ./ci/qt-installer-noninteractive.qs
 
       ############################################################
       # 4️⃣ Install Android SDK + NDK
@@ -78,7 +68,7 @@ jobs:
 
       - name: Add Qt and Android SDK to PATH
         run: |
-          echo "$HOME/Qt/$QT_VERSION/android_arm64_v8a/bin" >> $GITHUB_PATH
+          echo "$QT_INSTALL_DIR/$QT_VERSION/android_arm64_v8a/bin" >> $GITHUB_PATH
           echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
 
       ############################################################
@@ -88,8 +78,8 @@ jobs:
         run: |
           cmake -S . -B build-android \
             -G "Ninja" \
-            -DCMAKE_TOOLCHAIN_FILE=$HOME/Qt/$QT_VERSION/android_arm64_v8a/lib/cmake/Qt6/Android/Qt6AndroidToolchain.cmake \
-            -DQT_HOST_PATH=$HOME/Qt/$QT_VERSION/gcc_64 \
+            -DCMAKE_TOOLCHAIN_FILE=$QT_INSTALL_DIR/$QT_VERSION/android_arm64_v8a/lib/cmake/Qt6/Android/Qt6AndroidToolchain.cmake \
+            -DQT_HOST_PATH=$QT_INSTALL_DIR/$QT_VERSION/gcc_64 \
             -DCMAKE_BUILD_TYPE=Release \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-33 \
@@ -103,7 +93,7 @@ jobs:
       ############################################################
       - name: Deploy APK using androiddeployqt
         run: |
-          $HOME/Qt/$QT_VERSION/android_arm64_v8a/bin/androiddeployqt \
+          $QT_INSTALL_DIR/$QT_VERSION/android_arm64_v8a/bin/androiddeployqt \
             --input build-android/android-Qt6_deployment_settings.json \
             --output build-android/apk \
             --android-platform android-33 \
