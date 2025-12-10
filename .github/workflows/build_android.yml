@@ -14,13 +14,13 @@ jobs:
     env:
       QT_VERSION: 6.5.3
       ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-      ANDROID_NDK_VERSION: 23.1.7779620   # oficjalnie wspierany przez Qt 6.5.x
+      ANDROID_NDK_VERSION: 23.1.7779620
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install system tools
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip unzip wget ninja-build libxkbcommon-x11-dev
@@ -28,19 +28,21 @@ jobs:
       - name: Install aqtinstall
         run: pip3 install "aqtinstall>=3.2.0"
 
-      - name: Install Qt 6.5.3 for Android (arm64-v8a)
+      ############################################################
+      # INSTALL QT 6.5.3
+      ############################################################
+
+      - name: Install Qt 6.5.3 Android (arm64-v8a) + optional modules
         run: |
-          aqt install-qt linux android 6.5.3 android_arm64_v8a \
+          aqt install-qt linux android $QT_VERSION android_arm64_v8a \
             --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth qtcore5compat
+            --modules qtcharts qtnetworkauth
 
-      - name: Install Qt 6.5.3 Desktop (gcc_64)
+      - name: Install Qt 6.5.3 Desktop (gcc_64) + optional modules
         run: |
-          aqt install-qt linux desktop 6.5.3 gcc_64 \
+          aqt install-qt linux desktop $QT_VERSION gcc_64 \
             --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth qtcore5compat
-
-
+            --modules qtcharts qtnetworkauth
 
       ############################################################
       # INSTALL ANDROID SDK + NDK
@@ -51,37 +53,29 @@ jobs:
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
           cd $ANDROID_SDK_ROOT
 
-          # pobierz narzędzia
           wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdtools.zip
-
-          # wypakuj do TEMP
           unzip cmdtools.zip -d cmdline-tools-temp
-
-          # przenieś właściwą zawartość do cmdline-tools/latest
           mkdir -p cmdline-tools/latest
           mv cmdline-tools-temp/cmdline-tools/* cmdline-tools/latest/
 
-          # zaakceptuj licencje
           yes | cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} --licenses
 
-          # zainstaluj SDK, build-tools i NDK kompatybilne z Qt 6.5.3
           cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} \
             "platform-tools" \
             "platforms;android-33" \
             "build-tools;33.0.2" \
-            "ndk;23.1.7779620"
+            "ndk;$ANDROID_NDK_VERSION"
 
-
-      ############################################################
-      # CONFIGURE BUILD
-      ############################################################
-
-      - name: Add Qt and SDK to PATH
+      - name: Add Qt and Android SDK to PATH
         run: |
           echo "$HOME/Qt/$QT_VERSION/android_arm64_v8a/bin" >> $GITHUB_PATH
           echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
 
-      - name: Configure with CMake for Android
+      ############################################################
+      # CONFIGURE PROJECT WITH CMAKE
+      ############################################################
+
+      - name: Configure project (CMake)
         run: |
           cmake -S . -B build-android \
             -G "Ninja" \
@@ -91,11 +85,11 @@ jobs:
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-33
 
-      - name: Build app
+      - name: Build project
         run: cmake --build build-android --parallel
 
       ############################################################
-      # PACKAGE VIA androiddeployqt
+      # DEPLOY APK
       ############################################################
 
       - name: Deploy APK using androiddeployqt
