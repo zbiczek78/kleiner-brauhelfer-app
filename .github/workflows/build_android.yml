@@ -17,7 +17,7 @@ jobs:
       - name: Set environment paths
         run: |
           echo "ANDROID_SDK_ROOT=$RUNNER_TEMP/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$RUNNER_TEMP/android-sdk/ndk/r27c" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$RUNNER_TEMP/android-ndk" >> $GITHUB_ENV
           echo "QT_INSTALL_DIR=$RUNNER_TEMP/qt6" >> $GITHUB_ENV
           echo "QT_VERSION=6.10.0" >> $GITHUB_ENV
           echo "ANDROID_API_LEVEL=31" >> $GITHUB_ENV
