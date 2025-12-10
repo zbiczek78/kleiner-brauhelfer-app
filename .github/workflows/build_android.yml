@@ -34,12 +34,16 @@ jobs:
             build-tools;33.0.2
           ndk: "26.1.10909125"
 
-      - name: Install Qt 6.8 for Android
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install build-essential mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-dev libfontconfig1 fuse libxcb-cursor-dev -y
+
+      - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: ${{ env.QT_VERSION }}
-          target: android
-          arch: ${{ env.QT_ARCH }}
+          version: 6.10.*
+          modules: qtwebengine qtwebchannel qtpositioning qtserialport
 
       - name: Configure with CMake
         run: |
