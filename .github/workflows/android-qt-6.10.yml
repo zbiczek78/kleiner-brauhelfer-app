@@ -1,4 +1,4 @@
-name: Android CI Build (Qt 6.5.3) - Final Configuration
+name: Android CI Build (Qt 6.5.3) - Finalized Path Finding
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
       BUILD_DIR: build-android
       PLATFORM_TARGET: android
       ARCH_TARGET: android_arm64_v8a 
-      # Zmienne dla szczegółowych logów kompilacji (zostawiamy dla diagnostyki)
+      # Zmienne dla szczegółowych logów kompilacji
       CMAKE_VERBOSE_MAKEFILE: ON
       VERBOSE: 1
 
@@ -30,45 +30,46 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
         
-    # Krok 2: Instalacja Qt, Android SDK i NDK (POPRAWKA parametru 'cache')
+    # Krok 2: Instalacja Qt, Android SDK i NDK (poprawne użycie 'cache')
     - name: Install Qt and Android toolchain
-      id: install_qt # Dodajemy ID z powrotem, aby odczytać ścieżkę
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
         target: ${{ env.PLATFORM_TARGET }} 
         arch: ${{ env.ARCH_TARGET }}
         dir: ${{ runner.tool_cache }}
-        cache: true # POPRAWIONE: Zmieniono 'cached: true' na 'cache: true'
+        cache: true 
         
     # Krok 3: Przygotowanie katalogu roboczego
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (Powrót do metody Outputs z ID)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (Odnajdywanie ścieżki - Uproszczona wersja)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
       run: |
-        # Odczytanie dokładnej ścieżki instalacji Qt z outputs poprzedniego kroku
-        QT_BASE_DIR="${{ steps.install_qt.outputs.QT_ROOT_DIR }}"
+        # Ścieżka bazowa dla toolcache Qt na Ubuntu
+        QT_BASE_CACHE_DIR="/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}"
+        
+        # Użycie find do zlokalizowania podkatalogu zawierającego pliki instalacyjne (np. 6.5.3-0)
+        # Zmienna QT_INSTALL_DIR będzie zawierać ścieżkę do katalogu, który zawiera 'android_arm64_v8a'
+        QT_INSTALL_DIR=$(find "$QT_BASE_CACHE_DIR" -maxdepth 1 -type d -print -quit)
 
-        # Budowanie ścieżki do pliku toolchain
-        # Używamy find wewnątrz katalogu QT_BASE_DIR, aby zlokalizować qt.toolchain.cmake
-        QT_TOOLCHAIN_FILE=$(find "$QT_BASE_DIR" -name "qt.toolchain.cmake" | grep "${{ env.ARCH_TARGET }}" | head -n 1)
+        # Pełna ścieżka do zainstalowanego katalogu Qt (np. /opt/hostedtoolcache/Qt/6.5.3/6.5.3-0/android_arm64_v8a)
+        QT_ROOT_DIR="${QT_INSTALL_DIR}/${{ env.ARCH_TARGET }}"
+        
+        # Ścieżka do pliku toolchain
+        QT_TOOLCHAIN_FILE="${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake"
 
-        echo "QT_BASE_DIR: $QT_BASE_DIR"
+        echo "QT_INSTALL_DIR: $QT_INSTALL_DIR"
+        echo "QT_ROOT_DIR: $QT_ROOT_DIR"
         echo "QT_TOOLCHAIN_FILE: $QT_TOOLCHAIN_FILE"
 
-        if [ -z "$QT_TOOLCHAIN_FILE" ]; then
-          echo "Błąd: Nie znaleziono pliku toolchain dla Qt ${{ env.QT_VERSION }} w lokalizacji $QT_BASE_DIR."
-          # Dodajemy diagnostykę, jeśli ścieżka bazowa jest pusta
-          if [ -z "$QT_BASE_DIR" ]; then
-            echo "Katalog bazowy QT_BASE_DIR jest pusty. Sprawdź logi akcji 'Install Qt' pod kątem błędów pobierania."
-            # Dodatkowa diagnostyka sprawdzająca główne katalogi instalacyjne:
-            echo "Dostępne foldery w /opt/hostedtoolcache/Qt/ (jeśli używano 'dir: runner.tool_cache'):"
-            ls -R /opt/hostedtoolcache/Qt/
-          fi
+        if [ ! -f "$QT_TOOLCHAIN_FILE" ]; then
+          echo "Błąd: Nie znaleziono pliku toolchain ($QT_TOOLCHAIN_FILE) dla Qt ${{ env.QT_VERSION }}."
+          echo "Dostępne foldery w /opt/hostedtoolcache/Qt/ (diagnostyka):"
+          ls -R /opt/hostedtoolcache/Qt/
           exit 1
         fi
         
