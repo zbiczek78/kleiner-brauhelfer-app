@@ -36,16 +36,15 @@ jobs:
 
       - name: Install Android SDK + NDK
         env:
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-          ANDROID_API_LEVEL: ${{ env.ANDROID_API_LEVEL }}
-          ANDROID_NDK_VERSION: ${{ env.ANDROID_NDK_VERSION }}
+          ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT
+          ANDROID_API_LEVEL: $ANDROID_API_LEVEL
+          ANDROID_NDK_VERSION: $ANDROID_NDK_VERSION
         run: |
           set -e
           mkdir -p "$ANDROID_SDK_ROOT"
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
           unzip -q cmdline-tools.zip -d "$ANDROID_SDK_ROOT"
 
-          # poprawna struktura: cmdline-tools/latest/*
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
           mv "$ANDROID_SDK_ROOT/cmdline-tools/"* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
 
