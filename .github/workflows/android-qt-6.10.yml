@@ -27,34 +27,45 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
         
-    # Krok 2: Instalacja Qt, Android SDK i NDK (Dodano 'id: install_qt')
+    # Krok 2: Instalacja Qt, Android SDK i NDK (Użycie 'id' nie jest już potrzebne; używamy domyślnej ścieżki toolcache)
     - name: Install Qt and Android toolchain
-      id: install_qt # Dodano ID do akcji, aby uzyskać jej zmienne wyjściowe
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
         target: ${{ env.PLATFORM_TARGET }} 
         arch: ${{ env.ARCH_TARGET }}
+        # Wymuszamy instalację w katalogu toolcache, który jest przewidywalny
+        dir: ${{ runner.tool_cache }}
+        cached: true 
         
     # Krok 3: Przygotowanie katalogu roboczego
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (Użycie zmiennej wyjściowej akcji)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (Dynamiczne odnajdywanie ścieżki w toolcache)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
+      shell: bash
       run: |
-        # Odczytanie dokładnej ścieżki instalacji Qt z outputs poprzedniego kroku
-        QT_BASE_DIR="${{ steps.install_qt.outputs.QT_ROOT_DIR }}"
+        # Ścieżka bazowa dla toolcache Qt na Ubuntu
+        QT_BASE_CACHE_DIR="/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}"
+        
+        # Użycie ls i basename do znalezienia dokładnej wersji folderu (np. 6.5.3-0)
+        QT_VERSION_FOLDER=$(ls -d $QT_BASE_CACHE_DIR/*/ | head -n 1)
 
-        # Budowanie ścieżki do pliku toolchain
-        QT_TOOLCHAIN_FILE=$(find "$QT_BASE_DIR" -name "qt.toolchain.cmake" | grep "${{ env.ARCH_TARGET }}" | head -n 1)
+        # Pełna ścieżka do zainstalowanego katalogu Qt (zwykle /opt/hostedtoolcache/Qt/6.5.3/6.5.3-0/android_arm64_v8a)
+        QT_ROOT_DIR="${QT_VERSION_FOLDER}/${{ env.ARCH_TARGET }}"
+        
+        # Ścieżka do pliku toolchain
+        QT_TOOLCHAIN_FILE="${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake"
 
-        echo "QT_BASE_DIR: $QT_BASE_DIR"
+        echo "QT_ROOT_DIR: $QT_ROOT_DIR"
         echo "QT_TOOLCHAIN_FILE: $QT_TOOLCHAIN_FILE"
 
-        if [ -z "$QT_TOOLCHAIN_FILE" ]; then
-          echo "Błąd: Nie znaleziono pliku toolchain dla Qt ${{ env.QT_VERSION }} w lokalizacji $QT_BASE_DIR."
+        if [ ! -f "$QT_TOOLCHAIN_FILE" ]; then
+          echo "Błąd: Nie znaleziono pliku toolchain ($QT_TOOLCHAIN_FILE) dla Qt ${{ env.QT_VERSION }}."
+          echo "Dostępne foldery w toolcache:"
+          ls -R /opt/hostedtoolcache/Qt/ 
           exit 1
         fi
         
