@@ -1,10 +1,8 @@
 name: Android CI Build (Qt 6.5.3)
 
 on:
-  # Uruchomienie akcji przy pushu do gałęzi master
   push:
     branches: [ "master" ]
-  # Uruchomienie akcji ręcznie
   workflow_dispatch:
 
 jobs:
@@ -15,7 +13,6 @@ jobs:
     env:
       QT_VERSION: 6.5.3 
       BUILD_DIR: build-android
-      # POPRAWIONE: Rozdzielenie platformy od architektury
       PLATFORM_TARGET: android
       ARCH_TARGET: android_arm64_v8a 
 
@@ -30,24 +27,24 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
         
-    # Krok 2: Instalacja Qt, Android SDK i NDK (POPRAWIONE)
+    # Krok 2: Instalacja Qt, Android SDK i NDK (NAPRAWIONE: usunięto parametr 'dir')
     - name: Install Qt and Android toolchain
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
-        target: ${{ env.PLATFORM_TARGET }} # Użyj ogólnego "android"
-        arch: ${{ env.ARCH_TARGET }}       # Użyj "arch" dla szczegółowej architektury
-        dir: ${{ runner.tool_cache }}
+        target: ${{ env.PLATFORM_TARGET }} 
+        arch: ${{ env.ARCH_TARGET }}
+        # Linia 'dir: ${{ runner.tool_cache }}' została usunięta
         
     # Krok 3: Przygotowanie katalogu roboczego
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (POPRAWIONE ścieżki)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (Ścieżka ~/Qt działa poprawnie)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        # Znalezienie dynamicznej ścieżki do pliku toolchain Qt, używając ARCH_TARGET
+        # Znalezienie dynamicznej ścieżki do pliku toolchain Qt w domyślnej lokalizacji ~/Qt
         QT_TOOLCHAIN_FILE=$(find ~/Qt -name "qt.toolchain.cmake" | grep "${{ env.QT_VERSION }}/${{ env.ARCH_TARGET }}" | head -n 1)
 
         if [ -z "$QT_TOOLCHAIN_FILE" ]; then
