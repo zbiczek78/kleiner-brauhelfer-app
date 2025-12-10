@@ -10,8 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/Android/Sdk
-      ANDROID_NDK_ROOT: ${{ github.workspace }}/Android/Sdk/ndk
       QT_VERSION: "6.8.0"
       QT_ARCH: "android_arm64_v8a"
 
@@ -34,21 +32,29 @@ jobs:
             build-tools;33.0.2
           ndk: "26.1.10909125"
 
-      - name: Install dependencies
+      - name: Install dependencies needed by Qt
         run: |
           sudo apt-get update -y
-          sudo apt-get install build-essential mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-dev libfontconfig1 fuse libxcb-cursor-dev -y
+          sudo apt-get install -y \
+            build-essential \
+            mesa-common-dev \
+            libgl1-mesa-dev \
+            libxkbcommon-x11-dev \
+            libfontconfig1 \
+            fuse \
+            libxcb-cursor-dev
 
-      - name: Install Qt
+      - name: Install Qt for Android (6.8)
         uses: jurplel/install-qt-action@v4
         with:
-          version: 6.10.*
-          modules: qtwebengine qtwebchannel qtpositioning qtserialport
+          version: ${{ env.QT_VERSION }}
+          target: android
+          arch: ${{ env.QT_ARCH }}
 
-      - name: 5. Dodanie Qt binaries do PATH (naprawa braku qt-cmake)
+      - name: Debug: show installed Qt directories
         run: |
-          # Ta linia dodaje katalog bin/ zainstalowanej wersji Qt do PATH
-          echo "$QT_ROOT_DIR/${{ env.ANDROID_ARCH_ABI }}/bin" >> $GITHUB_PATH
+          echo "Installed Qt versions:"
+          ls -R $HOME/Qt
 
       - name: Configure with CMake
         run: |
