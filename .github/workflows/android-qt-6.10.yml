@@ -44,7 +44,7 @@ jobs:
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (NDK i SDK w folderze Qt)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (OSTATECZNA ścieżka NDK)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
@@ -52,26 +52,14 @@ jobs:
         # Włączenie trybu natychmiastowego wyjścia przy błędzie
         set -e
         
-        # 1. Ustalanie ścieżek Qt (na podstawie logów V17)
+        # 1. Ustalanie ścieżek Qt (Potwierdzona ścieżka V17)
         QT_BASE_CACHE_DIR="/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}"
-        
-        # Używamy ścieżki do folderu architektury jako ścieżki Qt
         QT_ROOT_DIR="${QT_BASE_CACHE_DIR}/${{ env.ARCH_TARGET }}"
         QT_TOOLCHAIN_FILE="${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake"
         
-        # 2. Ustalanie ścieżek Android NDK/SDK (KLUCZOWA ZMIANA: Szukamy w folderze Qt)
-        # Instalacja jest w QT_BASE_CACHE_DIR (czyli /opt/hostedtoolcache/Qt/6.5.3/)
-        
-        # Zlokalizowanie folderu NDK (np. android-ndk-r25c)
-        NDK_DIR_BASE="${QT_BASE_CACHE_DIR}/android_ndk"
-
-        # Znajdź folder wersji NDK wewnątrz android_ndk/
-        NDK_VERSION_DIR=$(ls -d ${NDK_DIR_BASE}/*/ | head -n 1)
-        NDK_VERSION_DIR="${NDK_VERSION_DIR%/}"
-
-        # Ustawienia NDK
+        # 2. Ustalanie ścieżek Android NDK/SDK (KLUCZOWA KOREKTA: NDK jest bezpośrednio w katalogu)
         ANDROID_SDK_ROOT="${QT_BASE_CACHE_DIR}/android_sdk"
-        ANDROID_NDK_ROOT="${NDK_VERSION_DIR}"
+        ANDROID_NDK_ROOT="${QT_BASE_CACHE_DIR}/android_ndk" # Ustawiamy NDK ROOT na folder bazowy
         NDK_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake"
         
         # 3. Ustawienie zmiennych środowiskowych
@@ -92,8 +80,8 @@ jobs:
         
         if [ ! -f "$NDK_TOOLCHAIN_FILE" ]; then
           echo "BŁĄD: Nie znaleziono pliku toolchain NDK ($NDK_TOOLCHAIN_FILE)."
-          echo "Zawartość katalogu NDK_DIR_BASE ($NDK_DIR_BASE):"
-          ls -F "$NDK_DIR_BASE" || true
+          echo "Zawartość katalogu ANDROID_NDK_ROOT ($ANDROID_NDK_ROOT):"
+          ls -F "$ANDROID_NDK_ROOT" || true
           exit 1
         fi
 
