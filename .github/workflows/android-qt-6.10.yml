@@ -30,7 +30,7 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
         
-    # Krok 2: Instalacja Qt, Android SDK i NDK
+    # Krok 2: Instalacja Qt, Android SDK i NDK (Jawne ustawienie narzędzi)
     - name: Install Qt and Android toolchain
       uses: jurplel/install-qt-action@v3
       with:
@@ -39,28 +39,37 @@ jobs:
         arch: ${{ env.ARCH_TARGET }}
         dir: ${{ runner.tool_cache }}
         cache: true 
+        # Jawnie wymuszamy instalację narzędzi Androida
+        tools: android
         
     # Krok 3: Przygotowanie katalogu roboczego
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (Uproszczona ścieżka Qt i NDK)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (Tryb set -e i ostateczna utwardzona ścieżka)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
       run: |
-        # 1. Ustalanie uproszczonych ścieżek Qt (na podstawie logów)
+        # Włączenie trybu natychmiastowego wyjścia przy błędzie
+        set -e
+        
+        # 1. Ustalanie ścieżek Qt (na podstawie logów V17)
         QT_ROOT_DIR="/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}/${{ env.ARCH_TARGET }}"
         QT_TOOLCHAIN_FILE="${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake"
         
-        # 2. Ustalanie ścieżek Android NDK/SDK (najbardziej prawdopodobna lokalizacja)
+        # 2. Ustalanie ścieżek Android NDK/SDK (Używamy $HOME, ponieważ tam są domyślnie instalowane)
         SDK_ROOT="/home/runner/Android/Sdk"
         NDK_DIR_BASE="${SDK_ROOT}/ndk"
         
-        # Znajdź folder wersji NDK (np. 25.2.8791522)
-        NDK_VERSION_DIR=$(find "$NDK_DIR_BASE" -maxdepth 1 -type d -name "*" -not -name ".*" -print -quit 2>/dev/null)
+        # Znajdź folder wersji NDK, jeśli nie znajdzie, NDK_VERSION_DIR będzie puste (set -e nas uchroni)
+        # UWAGA: Użyjemy ls, które działało lepiej niż find
+        NDK_VERSION_DIR=$(ls -d ${NDK_DIR_BASE}/*/ | head -n 1)
         
-        # Ustawienia NDK, używamy folderu wersji
+        # Usuwamy znak '/' na końcu ścieżki
+        NDK_VERSION_DIR="${NDK_VERSION_DIR%/}"
+
+        # Ustawienia NDK
         ANDROID_NDK_ROOT="${NDK_VERSION_DIR}"
         NDK_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake"
         
@@ -70,21 +79,18 @@ jobs:
         export ANDROID_NDK_ROOT="$ANDROID_NDK_ROOT"
 
         echo "QT_ROOT_DIR: $QT_ROOT_DIR"
-        echo "QT_TOOLCHAIN_FILE: $QT_TOOLCHAIN_FILE"
         echo "ANDROID_NDK_ROOT: $ANDROID_NDK_ROOT"
 
         # 4. Sprawdzanie istnienia wszystkich krytycznych plików
         if [ ! -f "$QT_TOOLCHAIN_FILE" ]; then
           echo "BŁĄD: Nie znaleziono pliku toolchain Qt ($QT_TOOLCHAIN_FILE)."
-          echo "Dostępna zawartość w $QT_ROOT_DIR:"
-          ls -F "$QT_ROOT_DIR" 2>/dev/null
+          ls -F "/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}/" || true
           exit 1
         fi
         
         if [ ! -f "$NDK_TOOLCHAIN_FILE" ]; then
           echo "BŁĄD: Nie znaleziono pliku toolchain NDK ($NDK_TOOLCHAIN_FILE)."
-          echo "Zawartość katalogu NDK_DIR_BASE ($NDK_DIR_BASE):"
-          ls -F "$NDK_DIR_BASE" 2>/dev/null || echo "Katalog NDK_DIR_BASE jest pusty lub nie istnieje."
+          ls -F "$NDK_DIR_BASE" || true
           exit 1
         fi
 
