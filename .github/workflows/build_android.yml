@@ -61,18 +61,18 @@ jobs:
       # ############################################################
       - name: Add androiddeployqt to PATH
         run: |
-          # Poprawiona ścieżka, bez powtarzania nazwy repozytorium
-          QT_ROOT_DIR="${{ github.workspace }}/Qt/${{ env.QT_VERSION }}"
+          # Używamy zmiennej QT_ROOT ustawionej przez jurplel/install-qt-action
+          # Przechodzimy do katalogu nadrzędnego (np. .../Qt/6.5.3)
+          QT_BASE_DIR=$(dirname $(dirname $QT_ROOT))
           
-          # Wyszukiwanie ścieżki bin z kompilatora skrośnego (android_arm64_v8a)
-          QT_ANDROID_BIN_PATH=$(find "$QT_ROOT_DIR" -type d -name "android_arm64_v8a" -prune -exec echo {}/bin \;)
+          # Stąd szukamy ścieżki do androiddeployqt
+          QT_ANDROID_BIN_PATH=$(find "$QT_BASE_DIR" -type d -name "android_arm64_v8a" -prune -exec echo {}/bin \;)
           
           if [ -d "$QT_ANDROID_BIN_PATH" ]; then
             echo "Znaleziono ścieżkę do androiddeployqt: $QT_ANDROID_BIN_PATH"
-            # Dodanie ścieżki do PATH dla kolejnych kroków
             echo "$QT_ANDROID_BIN_PATH" >> $GITHUB_PATH
           else
-            echo "Błąd: Nie znaleziono katalogu bin dla Android Qt w: $QT_ROOT_DIR"
+            echo "Błąd: Nie znaleziono katalogu bin dla Android Qt."
             exit 1
           fi
       # ############################################################
