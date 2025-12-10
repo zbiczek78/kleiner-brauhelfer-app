@@ -1,4 +1,4 @@
-name: Android CI Build (Qt 6.5.3) - Robust Configuration
+name: Android CI Build (Qt 6.5.3) - Linux CI Robust
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
       QT_VERSION: 6.5.3 
       BUILD_DIR: build-android
       PLATFORM_TARGET: android
-      ARCH_TARGET: android_arm64_v8a 
+      ARCH_TARGET: arm64-v8a
       CMAKE_VERBOSE_MAKEFILE: ON
       VERBOSE: 1
 
@@ -26,20 +26,30 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '17'
-        
-    - name: Install Qt and Android toolchain
+
+    # 1️⃣ Instalacja Qt (desktop, Linux)
+    - name: Install Qt (desktop)
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
-        target: ${{ env.PLATFORM_TARGET }}      # "android"
-        arch: ${{ env.ARCH_TARGET }}           # "android_arm64_v8a"
+        target: linux
+        arch: gcc_64
         dir: ${{ runner.tool_cache }}
         cache: true
-        tools: android_arm64_v8a                # dokładny toolchain dla Android 64-bit
 
+    # 2️⃣ Instalacja Android SDK i NDK ręcznie
+    - name: Set up Android SDK & NDK
+      uses: android-actions/setup-android@v2
+      with:
+        api-level: 34
+        ndk: 25.2.9519653
+        # opcjonalnie build-tools: '34.0.0'
+
+    # 3️⃣ Utworzenie katalogu build
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
-      
+
+    # 4️⃣ Konfiguracja CMake z Qt + Android NDK
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
@@ -47,20 +57,12 @@ jobs:
         set -e
 
         # Qt paths
-        QT_ROOT_DIR="/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}/${{ env.ARCH_TARGET }}"
+        QT_ROOT_DIR="/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}/gcc_64"
         QT_TOOLCHAIN_FILE="${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake"
 
         # Android SDK/NDK paths
-        SDK_ROOT="/home/runner/Android/Sdk"
-        NDK_DIR_BASE="${SDK_ROOT}/ndk"
-
-        # Wybór najnowszej wersji NDK
-        NDK_VERSION_DIR=$(ls -1 ${NDK_DIR_BASE} | sort -V | tail -n 1)
-        if [ -z "$NDK_VERSION_DIR" ]; then
-          echo "BŁĄD: Nie znaleziono żadnej wersji NDK w ${NDK_DIR_BASE}"
-          exit 1
-        fi
-        ANDROID_NDK_ROOT="${NDK_DIR_BASE}/${NDK_VERSION_DIR}"
+        SDK_ROOT="$HOME/Android/Sdk"
+        ANDROID_NDK_ROOT="${SDK_ROOT}/ndk/25.2.9519653"
         NDK_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake"
 
         # Eksport zmiennych środowiskowych
@@ -71,16 +73,13 @@ jobs:
         echo "QT_ROOT_DIR: $QT_ROOT_DIR"
         echo "ANDROID_NDK_ROOT: $ANDROID_NDK_ROOT"
 
-        # Sprawdzenie plików toolchain
+        # Sprawdzenie toolchain
         if [ ! -f "$QT_TOOLCHAIN_FILE" ]; then
           echo "BŁĄD: Nie znaleziono pliku toolchain Qt ($QT_TOOLCHAIN_FILE)."
-          ls -F "/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}/" || true
           exit 1
         fi
-
         if [ ! -f "$NDK_TOOLCHAIN_FILE" ]; then
           echo "BŁĄD: Nie znaleziono pliku toolchain NDK ($NDK_TOOLCHAIN_FILE)."
-          ls -F "$NDK_DIR_BASE" || true
           exit 1
         fi
 
@@ -93,11 +92,13 @@ jobs:
           -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
           -DCMAKE_MAKE_PROGRAM="$(which ninja)" \
           -DQT_CHAINLOAD_TOOLCHAIN_FILE="$NDK_TOOLCHAIN_FILE"
-          
+
+    # 5️⃣ Budowanie paczki Android
     - name: Build Android package
       working-directory: ${{ env.BUILD_DIR }}
       run: cmake --build . --parallel $(nproc)
-      
+
+    # 6️⃣ Upload artefaktu
     - name: Upload Android Artifact (APK/AAB)
       uses: actions/upload-artifact@v4
       with:
