@@ -1,105 +1,76 @@
-name: Build Android (Qt 6.10)
+name: Android CI Build (Qt 6.5.3)
 
 on:
+  # Uruchomienie akcji przy pushu do gałęzi master
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [ "master" ]
+  # Uruchomienie akcji ręcznie
+  workflow_dispatch:
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    
+    # Zmienne środowiskowe
+    env:
+      # ZMIANA: Użycie Qt 6.5.3
+      QT_VERSION: 6.5.3 
+      BUILD_DIR: build-android
+      ANDROID_ARCH: android_arm64_v8a # Docelowa architektura (np. arm64-v8a)
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    # Krok 1: Konfiguracja Javy (wymagana przez Android SDK)
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17' # Wymagane przez najnowsze wersje Android SDK
+        
+    # Krok 2: Instalacja Qt, Android SDK i NDK
+    - name: Install Qt and Android toolchain
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        target: ${{ env.ANDROID_ARCH }}
+        dir: ${{ runner.tool_cache }}
+        
+    # Krok 3: Przygotowanie katalogu roboczego
+    - name: Create build directory
+      run: mkdir -p ${{ env.BUILD_DIR }}
+      
+    # Krok 4: Konfiguracja projektu za pomocą CMake
+    - name: Configure CMake project for Android
+      working-directory: ${{ env.BUILD_DIR }}
+      run: |
+        # Znalezienie dynamicznej ścieżki do pliku toolchain Qt
+        QT_TOOLCHAIN_FILE=$(find ~/Qt -name "qt.toolchain.cmake" | grep "${{ env.QT_VERSION }}/${{ env.ANDROID_ARCH }}" | head -n 1)
 
-      - name: Set environment paths
-        run: |
-          echo "ANDROID_SDK_ROOT=$RUNNER_TEMP/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$RUNNER_TEMP/android-ndk" >> $GITHUB_ENV
-          echo "QT_INSTALL_DIR=$RUNNER_TEMP/qt6" >> $GITHUB_ENV
-          echo "QT_VERSION=6.10.0" >> $GITHUB_ENV
-          echo "ANDROID_API_LEVEL=31" >> $GITHUB_ENV
-          echo "ANDROID_NDK_VERSION=r27c" >> $GITHUB_ENV
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Install prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip wget cmake ninja-build build-essential python3-pip
-
-      - name: Install aqtinstall
-        run: |
-          python3 -m pip install --user aqtinstall
-          export PATH=$HOME/.local/bin:$PATH
-          aqt --version
-
-      - name: Install Android SDK + NDK
-        env:
-          ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT
-          ANDROID_API_LEVEL: $ANDROID_API_LEVEL
-          ANDROID_NDK_VERSION: $ANDROID_NDK_VERSION
-        run: |
-          set -e
-          mkdir -p "$ANDROID_SDK_ROOT"
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip -d "$ANDROID_SDK_ROOT"
-          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-          mv "$ANDROID_SDK_ROOT/cmdline-tools/"* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
-          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
-          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" \
-            "platform-tools" \
-            "platforms;android-${ANDROID_API_LEVEL}" \
-            "build-tools;34.0.0" \
-            "ndk;${ANDROID_NDK_VERSION}"
-
-      - name: Install Qt 6.10 for Android
-        env:
-          QT_INSTALL_DIR: $QT_INSTALL_DIR
-        run: |
-          export PATH=$HOME/.local/bin:$PATH
-          mkdir -p "$QT_INSTALL_DIR"
-          aqt install-qt linux android-6.10.0 \
-            --outputdir "$QT_INSTALL_DIR" \
-            --modules qtbase,qtdeclarative,qtquickcontrols2 \
-            --ndk r27c --verbose
-
-      - name: Configure CMake
-        env:
-          ANDROID_API_LEVEL: $ANDROID_API_LEVEL
-          QT_INSTALL_DIR: $QT_INSTALL_DIR
-        run: |
-          set -e
-          mkdir -p build-android
-          cd build-android
-
-          TOOLCHAIN_FILE=$(find "$QT_INSTALL_DIR" -type f -name "Qt6Toolchain.cmake" | head -n1)
-          QT6_DIR=$(find "$QT_INSTALL_DIR" -type d -path "*/lib/cmake/Qt6" | head -n1)
-
-          echo "Toolchain: $TOOLCHAIN_FILE"
-          echo "Qt6_DIR:   $QT6_DIR"
-
-          cmake .. -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-${ANDROID_API_LEVEL} \
-            -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
-            -DQt6_DIR="$QT6_DIR"
-
-      - name: Build
-        run: |
-          cd build-android
-          cmake --build . -- -j$(nproc)
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-artifacts
-          path: build-android/**/*.apk
-
+        if [ -z "$QT_TOOLCHAIN_FILE" ]; then
+          echo "Błąd: Nie znaleziono pliku toolchain dla Qt ${{ env.QT_VERSION }} Android."
+          exit 1
+        fi
+        
+        # Konfiguracja CMake dla kompilacji Android
+        cmake .. \
+          -DCMAKE_TOOLCHAIN_FILE="$QT_TOOLCHAIN_FILE" \
+          -DCMAKE_BUILD_TYPE=Release
+          
+    # Krok 5: Kompilacja i budowanie paczki Androida
+    - name: Build Android package
+      working-directory: ${{ env.BUILD_DIR }}
+      # Użycie wszystkich dostępnych rdzeni do kompilacji
+      run: cmake --build . --parallel $(nproc)
+      
+    # Krok 6: Upload wynikowego artefaktu (APK/AAB)
+    - name: Upload Android Artifact (APK/AAB)
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-package-${{ env.QT_VERSION }}-${{ github.sha }}
+        # Ścieżka szuka plików APK lub AAB w katalogu budowania i jego podkatalogach
+        path: |
+          ${{ env.BUILD_DIR }}/**/*.apk
+          ${{ env.BUILD_DIR }}/**/*.aab
+        retention-days: 7
