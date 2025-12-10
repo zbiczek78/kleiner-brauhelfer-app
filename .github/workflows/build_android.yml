@@ -52,18 +52,16 @@ jobs:
           host: 'linux'
           target: 'android'
           arch: ${{ env.ANDROID_ARCH }}
-          # Usunięto: qtwebengine (bo zgłasza błąd w aqtinstall)
-          # Usunięto: qtbase-private (bo zgłasza błąd w aqtinstall)
-          modules: 'qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth qt5compat'
+          modules: 'qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth qt5compat' # Bez błędnych nazw!
           cache: 'true'
-          include-private-modules: true # Wymagane dla CorePrivate
+          include-private-modules: true # Zostawiamy włączone
       
       # ############################################################
       # 5️⃣ Configure project with CMake
       # ############################################################
       - name: Configure project (CMake)
         run: |
-          # jurplel/install-qt-action automatycznie ustawia PATH do binariów Qt
+          # Nowa flaga, która wymusza znalezienie nagłówków prywatnych
           # Używamy qt-cmake, który jest wrapperem dostarczanym przez Qt
           
           qt-cmake -S . -B build-android \
@@ -71,10 +69,11 @@ jobs:
             -DANDROID_PLATFORM=android-${{ env.ANDROID_TARGET_SDK }} \
             -DANDROID_ABI=arm64-v8a \
             -DCMAKE_BUILD_TYPE=Release \
-            -DQT_ANDROID_BUILD_ALL_ABIS=OFF 
+            -DQT_ANDROID_BUILD_ALL_ABIS=OFF \
+            -DQT_BUILD_PRIVATE_HEADERS=ON # <--- KLUCZOWA ZMIANA
           
-          # Uwaga: Qt 6 zazwyczaj samo wykrywa NDK zainstalowane na GitHub Actions.
-          # Jeśli wystąpi błąd NDK, można dodać flagę: -DANDROID_NDK_ROOT=$ANDROID_NDK_HOME
+          # Jeśli powyższa flaga nie zadziała, spróbuj zamienić ją na:
+          # -DQT_FORCE_FIND_PRIVATE_HEADERS=ON
 
       # ############################################################
       # 6️⃣ Build project
