@@ -56,7 +56,25 @@ jobs:
           cache: 'true'
           # 👇 KLUCZOWA ZMIANA: Włącz instalację modułów prywatnych
           include-private-modules: true
-
+      # ############################################################
+      # 4b. Dodanie androiddeployqt do PATH
+      # ############################################################
+      - name: Add androiddeployqt to PATH
+        run: |
+          # Zmienna środowiskowa QT_ROOT jest ustawiana przez jurplel/install-qt-action
+          # Zwykle to ścieżka do np. /home/runner/work/repo/Qt/6.5.3/gcc_64
+          # Musimy znaleźć ścieżkę do binariów androida (np. androiddeployqt)
+          
+          # Zakładamy, że ścieżka wygląda tak: $QT_ROOT/../android_arm64_v8a/bin
+          QT_ANDROID_BIN_PATH=$(find ${{ github.workspace }}/Qt/${{ env.QT_VERSION }}/ -name androiddeployqt -exec dirname {} \;)
+          
+          if [ -d "$QT_ANDROID_BIN_PATH" ]; then
+            echo "Znaleziono ścieżkę do androiddeployqt: $QT_ANDROID_BIN_PATH"
+            echo "$QT_ANDROID_BIN_PATH" >> $GITHUB_PATH
+          else
+            echo "Błąd: Nie znaleziono katalogu bin dla Android Qt."
+            exit 1
+          fi
       # ############################################################
       # 5️⃣ Configure project with CMake
       # ############################################################
