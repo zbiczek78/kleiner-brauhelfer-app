@@ -11,7 +11,7 @@ jobs:
     
     # Zmienne środowiskowe
     env:
-      QT_VERSION: 6.5.3 
+      QT_VERSION: 6.10.0
       BUILD_DIR: build-android
       PLATFORM_TARGET: android
       ARCH_TARGET: android_arm64_v8a 
