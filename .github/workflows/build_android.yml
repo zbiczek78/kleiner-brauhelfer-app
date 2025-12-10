@@ -52,8 +52,8 @@ jobs:
           host: 'linux'
           target: 'android'
           arch: ${{ env.ANDROID_ARCH }}
-          # 👇 DODANO 'qtnetworkauth' NA KOŃCU LISTY
-          modules: 'qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth'
+          # 👇 DODANO 'qt5compat' NA KOŃCU LISTY
+          modules: 'qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth qt5compat'
           cache: 'true'
 
       # ############################################################
