@@ -101,7 +101,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-artifacts
-          path:
-            - build-android/**/*.apk
-            - build-android/**/*.aab
-            - build-android/**/*.so
+          path: build-android/**/*.apk,build-android/**/*.aab,build-android/**/*.so
+
