@@ -27,28 +27,34 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
         
-    # Krok 2: Instalacja Qt, Android SDK i NDK (NAPRAWIONE: usunięto parametr 'dir')
+    # Krok 2: Instalacja Qt, Android SDK i NDK (Dodano 'id: install_qt')
     - name: Install Qt and Android toolchain
+      id: install_qt # Dodano ID do akcji, aby uzyskać jej zmienne wyjściowe
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
         target: ${{ env.PLATFORM_TARGET }} 
         arch: ${{ env.ARCH_TARGET }}
-        # Linia 'dir: ${{ runner.tool_cache }}' została usunięta
         
     # Krok 3: Przygotowanie katalogu roboczego
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (Ścieżka ~/Qt działa poprawnie)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (Użycie zmiennej wyjściowej akcji)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        # Znalezienie dynamicznej ścieżki do pliku toolchain Qt w domyślnej lokalizacji ~/Qt
-        QT_TOOLCHAIN_FILE=$(find ~/Qt -name "qt.toolchain.cmake" | grep "${{ env.QT_VERSION }}/${{ env.ARCH_TARGET }}" | head -n 1)
+        # Odczytanie dokładnej ścieżki instalacji Qt z outputs poprzedniego kroku
+        QT_BASE_DIR="${{ steps.install_qt.outputs.QT_ROOT_DIR }}"
+
+        # Budowanie ścieżki do pliku toolchain
+        QT_TOOLCHAIN_FILE=$(find "$QT_BASE_DIR" -name "qt.toolchain.cmake" | grep "${{ env.ARCH_TARGET }}" | head -n 1)
+
+        echo "QT_BASE_DIR: $QT_BASE_DIR"
+        echo "QT_TOOLCHAIN_FILE: $QT_TOOLCHAIN_FILE"
 
         if [ -z "$QT_TOOLCHAIN_FILE" ]; then
-          echo "Błąd: Nie znaleziono pliku toolchain dla Qt ${{ env.QT_VERSION }} Android."
+          echo "Błąd: Nie znaleziono pliku toolchain dla Qt ${{ env.QT_VERSION }} w lokalizacji $QT_BASE_DIR."
           exit 1
         fi
         
