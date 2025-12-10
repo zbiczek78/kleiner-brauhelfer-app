@@ -44,46 +44,65 @@ jobs:
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (Jawne wskazanie Ninja)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (Ustawienie ścieżek NDK/SDK)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
       run: |
-        # 1. DIAGNOSTYKA: Sprawdzenie ścieżki Ninja
-        NINJA_PATH=$(which ninja)
-        echo "Found Ninja at: $NINJA_PATH"
-
-        if [ -z "$NINJA_PATH" ]; then
-          echo "Krytyczny błąd: Program 'ninja' nie został znaleziony w ścieżce (\$PATH)."
-          exit 1
-        fi
-        
-        # 2. Odnajdywanie katalogów Qt
+        # 1. Odnajdywanie katalogów Qt
         QT_BASE_CACHE_DIR="/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}"
         QT_INSTALL_DIR=$(find "$QT_BASE_CACHE_DIR" -maxdepth 1 -type d -print -quit)
 
-        # 3. Ustalanie ścieżek Android SDK/NDK
-        ANDROID_SDK_ROOT="${QT_INSTALL_DIR}/android_sdk"
-        ANDROID_NDK_ROOT="${QT_INSTALL_DIR}/android_ndk"
+        # 2. Ustalanie ścieżek Android SDK/NDK
+        # NDK jest instalowane w podkatalogu o nazwie wersji (np. android-ndk-r25c)
+        SDK_ROOT="${QT_INSTALL_DIR}/android_sdk"
+        NDK_DIR_BASE="${QT_INSTALL_DIR}/android_ndk"
 
-        # 4. Ustawienie zmiennych środowiskowych dla CMake/Qt
-        export ANDROID_SDK_ROOT="$ANDROID_SDK_ROOT"
-        export ANDROID_NDK_ROOT="$ANDROID_NDK_ROOT"
+        # Dynamically find the NDK version directory (e.g., android-ndk-r25c)
+        NDK_VERSION_DIR=$(find "$NDK_DIR_BASE" -maxdepth 1 -type d -name "android-ndk-*" -print -quit)
+        
+        # Jeśli nie znaleziono podkatalogu NDK w wersji, użyjemy domyślnej ścieżki bazowej (mniej prawdopodobne, ale bezpieczne)
+        if [ -z "$NDK_VERSION_DIR" ]; then
+          NDK_VERSION_DIR="$NDK_DIR_BASE"
+        fi
+        
+        NDK_TOOLCHAIN_FILE="${NDK_VERSION_DIR}/build/cmake/android.toolchain.cmake"
+        
+        # 3. Ustawienie zmiennych środowiskowych dla CMake/Qt
+        export ANDROID_SDK_ROOT="$SDK_ROOT"
+        export ANDROID_NDK_ROOT="$NDK_VERSION_DIR" # Należy wskazywać na folder zawierający 'build/cmake'
         export JAVA_HOME="$JAVA_HOME" 
 
-        # 5. Ustalanie ścieżki do Toolchain CMake
+        # 4. Ustalanie ścieżki do Toolchain Qt
         QT_ROOT_DIR="${QT_INSTALL_DIR}/${{ env.ARCH_TARGET }}"
         QT_TOOLCHAIN_FILE="${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake"
 
-        # 6. Konfiguracja CMake
-        # DODANO: Jawne ustawienie CMAKE_MAKE_PROGRAM na ścieżkę do Ninja
+        echo "ANDROID_NDK_ROOT (Actual): $ANDROID_NDK_ROOT"
+        echo "NDK_TOOLCHAIN_FILE (Calculated): $NDK_TOOLCHAIN_FILE"
+        echo "QT_TOOLCHAIN_FILE: $QT_TOOLCHAIN_FILE"
+
+        if [ ! -f "$QT_TOOLCHAIN_FILE" ]; then
+          echo "Błąd: Nie znaleziono pliku toolchain ($QT_TOOLCHAIN_FILE)."
+          exit 1
+        fi
+        
+        if [ ! -f "$NDK_TOOLCHAIN_FILE" ]; then
+          echo "BŁĄD KRYTYCZNY NDK: Oczekiwany plik NDK toolchain nie istnieje: $NDK_TOOLCHAIN_FILE"
+          echo "Zawartość katalogu NDK_DIR_BASE:"
+          ls -R "$NDK_DIR_BASE"
+          exit 1
+        fi
+
+        # 5. Konfiguracja CMake
+        # Używamy QT_CHAINLOAD_TOOLCHAIN_FILE, aby jawnie przekazać poprawną ścieżkę do NDK
         cmake .. \
           -G Ninja \
           -DCMAKE_TOOLCHAIN_FILE="$QT_TOOLCHAIN_FILE" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_COMPILER=/usr/bin/gcc \
           -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
-          -DCMAKE_MAKE_PROGRAM="$NINJA_PATH"
+          -DCMAKE_MAKE_PROGRAM="$(which ninja)" \
+          -DQT_CHAINLOAD_TOOLCHAIN_FILE="$NDK_TOOLCHAIN_FILE"
           
     # Krok 5: Kompilacja i budowanie paczki Androida
     - name: Build Android package
