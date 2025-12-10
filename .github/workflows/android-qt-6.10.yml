@@ -11,7 +11,7 @@ jobs:
     
     # Zmienne środowiskowe
     env:
-      QT_VERSION: 6.5.3 
+      QT_VERSION: 6.10
       BUILD_DIR: build-android
       PLATFORM_TARGET: android
       ARCH_TARGET: android_arm64_v8a 
@@ -22,6 +22,11 @@ jobs:
     
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install build-essential mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-dev libfontconfig1 fuse libxcb-cursor-dev -y
       
     # Krok 1: Konfiguracja Javy
     - name: Set up Java
