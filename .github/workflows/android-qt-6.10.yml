@@ -13,40 +13,42 @@ jobs:
     
     # Zmienne środowiskowe
     env:
-      # ZMIANA: Użycie Qt 6.5.3
       QT_VERSION: 6.5.3 
       BUILD_DIR: build-android
-      ANDROID_ARCH: android_arm64_v8a # Docelowa architektura (np. arm64-v8a)
+      # POPRAWIONE: Rozdzielenie platformy od architektury
+      PLATFORM_TARGET: android
+      ARCH_TARGET: android_arm64_v8a 
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    # Krok 1: Konfiguracja Javy (wymagana przez Android SDK)
+    # Krok 1: Konfiguracja Javy
     - name: Set up Java
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17' # Wymagane przez najnowsze wersje Android SDK
+        java-version: '17'
         
-    # Krok 2: Instalacja Qt, Android SDK i NDK
+    # Krok 2: Instalacja Qt, Android SDK i NDK (POPRAWIONE)
     - name: Install Qt and Android toolchain
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
-        target: ${{ env.ANDROID_ARCH }}
+        target: ${{ env.PLATFORM_TARGET }} # Użyj ogólnego "android"
+        arch: ${{ env.ARCH_TARGET }}       # Użyj "arch" dla szczegółowej architektury
         dir: ${{ runner.tool_cache }}
         
     # Krok 3: Przygotowanie katalogu roboczego
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake
+    # Krok 4: Konfiguracja projektu za pomocą CMake (POPRAWIONE ścieżki)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       run: |
-        # Znalezienie dynamicznej ścieżki do pliku toolchain Qt
-        QT_TOOLCHAIN_FILE=$(find ~/Qt -name "qt.toolchain.cmake" | grep "${{ env.QT_VERSION }}/${{ env.ANDROID_ARCH }}" | head -n 1)
+        # Znalezienie dynamicznej ścieżki do pliku toolchain Qt, używając ARCH_TARGET
+        QT_TOOLCHAIN_FILE=$(find ~/Qt -name "qt.toolchain.cmake" | grep "${{ env.QT_VERSION }}/${{ env.ARCH_TARGET }}" | head -n 1)
 
         if [ -z "$QT_TOOLCHAIN_FILE" ]; then
           echo "Błąd: Nie znaleziono pliku toolchain dla Qt ${{ env.QT_VERSION }} Android."
@@ -61,7 +63,6 @@ jobs:
     # Krok 5: Kompilacja i budowanie paczki Androida
     - name: Build Android package
       working-directory: ${{ env.BUILD_DIR }}
-      # Użycie wszystkich dostępnych rdzeni do kompilacji
       run: cmake --build . --parallel $(nproc)
       
     # Krok 6: Upload wynikowego artefaktu (APK/AAB)
@@ -69,7 +70,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: android-package-${{ env.QT_VERSION }}-${{ github.sha }}
-        # Ścieżka szuka plików APK lub AAB w katalogu budowania i jego podkatalogach
         path: |
           ${{ env.BUILD_DIR }}/**/*.apk
           ${{ env.BUILD_DIR }}/**/*.aab
