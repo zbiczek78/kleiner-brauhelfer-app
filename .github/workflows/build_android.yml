@@ -51,11 +51,6 @@ jobs:
           target: android
           arch: ${{ env.QT_ARCH }}
 
-      - name: Debug: show installed Qt directories
-        run: |
-          echo "Installed Qt versions:"
-          ls -R $HOME/Qt
-
       - name: Configure with CMake
         run: |
           mkdir build
