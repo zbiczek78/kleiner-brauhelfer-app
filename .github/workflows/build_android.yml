@@ -11,101 +11,92 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare temp paths and basic env
+      - name: Set environment paths
         run: |
           echo "ANDROID_SDK_ROOT=$RUNNER_TEMP/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$RUNNER_TEMP/android-ndk" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$RUNNER_TEMP/android-sdk/ndk/r27c" >> $GITHUB_ENV
           echo "QT_INSTALL_DIR=$RUNNER_TEMP/qt6" >> $GITHUB_ENV
           echo "QT_VERSION=6.10.0" >> $GITHUB_ENV
           echo "ANDROID_API_LEVEL=31" >> $GITHUB_ENV
           echo "ANDROID_NDK_VERSION=r27c" >> $GITHUB_ENV
-          echo "QT_ARCHIVE_URL=${{ secrets.QT_ARCHIVE_URL }}" >> $GITHUB_ENV
-        shell: bash
 
-      - name: Setup Java (required by Android SDK tools)
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '11'
+          distribution: temurin
+          java-version: '17'
 
       - name: Install prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y unzip wget python3-pip cmake build-essential ninja-build
-        shell: bash
+          sudo apt-get install -y unzip wget cmake ninja-build build-essential
 
-      - name: Install Android commandline tools and NDK
-        run: |
-          mkdir -p "$ANDROID_SDK_ROOT"
-          cd "$ANDROID_SDK_ROOT"
-          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mkdir -p cmdline-tools/latest
-          mv cmdline-tools/* cmdline-tools/latest/ || true
-          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
-          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-${ANDROID_API_LEVEL}" "build-tools;33.0.2" "ndk;${ANDROID_NDK_VERSION}"
-          echo "PATH=$PATH" >> $GITHUB_ENV
+      - name: Install Android SDK + NDK
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_API_LEVEL: ${{ env.ANDROID_API_LEVEL }}
           ANDROID_NDK_VERSION: ${{ env.ANDROID_NDK_VERSION }}
-        shell: bash
-
-      - name: Install Qt 6.10 from archive (requires secret QT_ARCHIVE_URL)
         run: |
-          if [ -z "$QT_ARCHIVE_URL" ]; then
-            echo "ERROR: QT_ARCHIVE_URL is not set. Add it to repository secrets or modify this step to install Qt differently."
-            exit 1
-          fi
+          set -e
+          mkdir -p "$ANDROID_SDK_ROOT"
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          unzip -q cmdline-tools.zip -d "$ANDROID_SDK_ROOT"
+
+          # poprawna struktura: cmdline-tools/latest/*
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/"* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
+
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+
+          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" \
+            "platform-tools" \
+            "platforms;android-${ANDROID_API_LEVEL}" \
+            "build-tools;34.0.0" \
+            "ndk;${ANDROID_NDK_VERSION}"
+
+      - name: (Placeholder) Install Qt 6.10
+        run: |
+          echo "👉 Tutaj musisz zainstalować Qt, np:"
+          echo "wget ...; tar -xf qt-6.10.0-android.tar.xz -C \"$QT_INSTALL_DIR\""
           mkdir -p "$QT_INSTALL_DIR"
-          cd "$RUNNER_TEMP"
-          echo "Downloading Qt from $QT_ARCHIVE_URL"
-          wget -q "$QT_ARCHIVE_URL" -O qt6.tar.xz
-          tar -xf qt6.tar.xz -C "$QT_INSTALL_DIR" --strip-components=1
-          echo "Qt extracted to $QT_INSTALL_DIR"
-        env:
-          QT_ARCHIVE_URL: ${{ env.QT_ARCHIVE_URL }}
-          QT_INSTALL_DIR: ${{ env.QT_INSTALL_DIR }}
-        shell: bash
+          ls -la "$QT_INSTALL_DIR" || true
 
-      - name: Configure CMake for Android (Qt6)
+      - name: Configure CMake
+        env:
+          ANDROID_API_LEVEL: ${{ env.ANDROID_API_LEVEL }}
+          QT_INSTALL_DIR: ${{ env.QT_INSTALL_DIR }}
         run: |
+          set -e
           mkdir -p build-android
           cd build-android
-          # Dostosuj poniższe ścieżki do rzeczywistej struktury rozpakowanego Qt
-          # Przykład zakłada, że Qt został rozpakowany do $QT_INSTALL_DIR i zawiera katalog android_arm64_clang
-          TOOLCHAIN_FILE="$QT_INSTALL_DIR/6.10.0/android_arm64_clang_17.0.2/qtbase/lib/cmake/Qt6/Qt6Toolchain.cmake"
-          QT6_DIR="$QT_INSTALL_DIR/6.10.0/android_arm64_clang_17.0.2/lib/cmake/Qt6"
-          if [ ! -f "$TOOLCHAIN_FILE" ]; then
-            echo "Warning: toolchain file not found at $TOOLCHAIN_FILE. Adjust TOOLCHAIN_FILE and QT6_DIR to match your Qt layout."
-          fi
-          cmake .. \
-            -G Ninja \
+
+          # Szukanie faktycznego pliku:
+          TOOLCHAIN_FILE=$(find "$QT_INSTALL_DIR" -type f -name "Qt6Toolchain.cmake" | head -n1)
+          QT6_DIR=$(find "$QT_INSTALL_DIR" -type d -path "*/lib/cmake/Qt6" | head -n1)
+
+          echo "Toolchain: $TOOLCHAIN_FILE"
+          echo "Qt6_DIR:   $QT6_DIR"
+
+          cmake .. -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-${ANDROID_API_LEVEL} \
             -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" \
             -DQt6_DIR="$QT6_DIR"
-        env:
-          QT_INSTALL_DIR: ${{ env.QT_INSTALL_DIR }}
-          ANDROID_API_LEVEL: ${{ env.ANDROID_API_LEVEL }}
-        shell: bash
 
       - name: Build
         run: |
           cd build-android
           cmake --build . -- -j$(nproc)
-        shell: bash
 
-      - name: Collect APKs and artifacts
-        if: success()
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-artifacts
           path: |
-            build-android/*.apk
-            build-android/*.aab
-            build-android/*.so
+            build-android/**/*.apk
+            build-android/**/*.aab
+            build-android/**/*.so
