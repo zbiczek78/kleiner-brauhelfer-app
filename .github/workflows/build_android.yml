@@ -52,8 +52,8 @@ jobs:
           host: 'linux'
           target: 'android'
           arch: ${{ env.ANDROID_ARCH }}
-          # 👇 DODANO 'qtcharts' DO LISTY PONIŻEJ
-          modules: 'qtwebchannel qtpositioning qtserialport qtcharts'
+          # 👇 DODANO 'qtnetworkauth' NA KOŃCU LISTY
+          modules: 'qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth'
           cache: 'true'
 
       # ############################################################
