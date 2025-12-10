@@ -43,7 +43,7 @@ jobs:
         run: |
           aqt install-qt linux android $QT_VERSION android_arm64_v8a \
             --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth qtwebengine qtwebchannel qtpositioning
+            --modules qtcharts qtnetworkauth qtwebchannel qtpositioning
 
       - name: Install Qt 6.5.3 Desktop (gcc_64)
         run: |
