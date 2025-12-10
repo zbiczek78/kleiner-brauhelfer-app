@@ -45,6 +45,11 @@ jobs:
           version: 6.10.*
           modules: qtwebengine qtwebchannel qtpositioning qtserialport
 
+      - name: 5. Dodanie Qt binaries do PATH (naprawa braku qt-cmake)
+        run: |
+          # Ta linia dodaje katalog bin/ zainstalowanej wersji Qt do PATH
+          echo "$QT_ROOT_DIR/${{ env.ANDROID_ARCH_ABI }}/bin" >> $GITHUB_PATH
+
       - name: Configure with CMake
         run: |
           mkdir build
