@@ -1,73 +1,60 @@
-name: Build Android APK
+name: Android APK
 
 on:
   push:
-    branches:
-      - master
-      - main
+    branches: [ master, main ]
   pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      QT_VERSION: "6.10"
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/Android/Sdk
-      ANDROID_NDK_ROOT: ${{ github.workspace }}/Android/Sdk/ndk-bundle
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java JDK
+      - name: Install Java
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Android SDK & NDK
+      - name: Install Android SDK + NDK
         uses: android-actions/setup-android@v2
         with:
-          sdk: "platform-tools,platforms;android-33,build-tools;33.0.2"
-          ndk: "latest"
-          cache: true
+          sdk: |
+            platform-tools
+            platforms;android-33
+            build-tools;33.0.2
+          ndk: 25.1.8937393
 
-      - name: Install Qt
+      - name: Install Qt 6.5 for Android
         uses: jurplel/install-qt-action@v4
         with:
-          version: ${{ env.QT_VERSION }}
+          version: 6.5.3
           target: android
-          # arch może być android_armv7 albo android_arm64_v8a, w zależności od Twoich potrzeb
           arch: android_arm64_v8a
+          modules: qtbase qtdeclarative qtquickcontrols2 qtshadertools
 
-      - name: Configure project with CMake for Android
+      - name: Build with qmake
         run: |
-          mkdir build-android
-          cd build-android
-          ${HOME}/Qt/${{ env.QT_VERSION }}/android_arm64_v8a/bin/qt-cmake \
-            -DANDROID_SDK_ROOT=${{ env.ANDROID_SDK_ROOT }} \
-            -DANDROID_NDK_ROOT=${{ env.ANDROID_NDK_ROOT }} \
-            -DCMAKE_BUILD_TYPE=Release \
-            -S .. \
-            -B . \
-            -GNinja
+          mkdir build
+          cd build
+          qmake ../kleiner-brauhelfer.pro CONFIG+=release
+          make -j$(nproc)
 
-      - name: Build APK
+      - name: Package APK
         run: |
-          cd build-android
-          ninja
-
-      - name: Create APK using androiddeployqt (if needed)
-        run: |
-          cd build-android
-          ${HOME}/Qt/${{ env.QT_VERSION }}/android_arm64_v8a/bin/androiddeployqt \
-            --input build/YourAppName.json \
-            --output output/android \
-            --deployment bundled \
+          cd build
+          androiddeployqt \
             --release \
-            --jdkpath ${{ env.JAVA_HOME }}
+            --input android-libkleiner-brauhelfer.so-deployment-settings.json \
+            --output android-build \
+            --android-platform android-33 \
+            --jdk ${JAVA_HOME}
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          name: kleiner-brauhelfer-app-android
-          path: build-android/output/android/*.apk
+          name: kleiner-brauhelfer-android
+          path: build/android-build/*.apk
