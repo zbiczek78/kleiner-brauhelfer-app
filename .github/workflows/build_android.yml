@@ -52,10 +52,12 @@ jobs:
           host: 'linux'
           target: 'android'
           arch: ${{ env.ANDROID_ARCH }}
-          # 👇 KLUCZOWA ZMIANA: Dodajemy 'qtbase'
-          modules: 'qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth qt5compat qtbase' 
+          # Usunięto: qtbase, qtbase-private, qtwebengine. 
+          # Pozostawiono tylko moduły opcjonalne, które najczęściej działają.
+          modules: 'qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth qt5compat' 
           cache: 'true'
-          include-private-modules: true # Nadal włączone
+          # Ta flaga jest kluczowa dla CorePrivate!
+          include-private-modules: true
       
       # ############################################################
       # 5️⃣ Configure project with CMake
