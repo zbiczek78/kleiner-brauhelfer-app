@@ -61,11 +61,10 @@ jobs:
       # ############################################################
       - name: Add androiddeployqt to PATH
         run: |
-          # Ścieżka do katalogu Qt, który został zainstalowany
+          # Poprawiona ścieżka, bez powtarzania nazwy repozytorium
           QT_ROOT_DIR="${{ github.workspace }}/Qt/${{ env.QT_VERSION }}"
           
           # Wyszukiwanie ścieżki bin z kompilatora skrośnego (android_arm64_v8a)
-          # Przykładowa pełna ścieżka: /home/runner/work/.../Qt/6.5.3/android_arm64_v8a/bin
           QT_ANDROID_BIN_PATH=$(find "$QT_ROOT_DIR" -type d -name "android_arm64_v8a" -prune -exec echo {}/bin \;)
           
           if [ -d "$QT_ANDROID_BIN_PATH" ]; then
@@ -105,7 +104,7 @@ jobs:
       # ############################################################
       - name: Build APK using androiddeployqt
         run: |
-          # Pełna ścieżka złożona ze zmiennych: github.workspace / Qt / QT_VERSION / android_arm64_v8a / bin / androiddeployqt
+          # Użycie pełnej, jawnej, trwale zakodowanej ścieżki
           "${{ github.workspace }}/Qt/${{ env.QT_VERSION }}/android_arm64_v8a/bin/androiddeployqt" \
             --input build-android/android-Qt6_deployment_settings.json \
             --output build-android/android-build \
