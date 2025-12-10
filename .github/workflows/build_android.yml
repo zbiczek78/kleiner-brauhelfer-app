@@ -59,8 +59,12 @@ jobs:
         target: 'android'
         arch: 'android_arm64_v8a'
         # Akcja ustawia zmienną środowiskową QT_ROOT_DIR
+    - name: 5. Instalacja narzędzi build-essential (GCC, G++, make)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
 
-    - name: 5. Konfiguracja projektu za pomocą CMake
+    - name: 6. Konfiguracja projektu za pomocą CMake
       shell: bash
       run: |
         # Ścieżka do pliku toolchain NDK
@@ -83,14 +87,14 @@ jobs:
           -DQt6_DIR=${{ env.QT_ROOT_DIR }}/${{ env.QT_VERSION }}/${{ env.ANDROID_ARCH_ABI }}/lib/cmake/Qt6 \
           -DANDROID_STL=c++_shared
 
-    - name: 6. Kompilacja programu i utworzenie APK
+    - name: 7. Kompilacja programu i utworzenie APK
       shell: bash
       run: |
         cd ${{ env.BUILD_DIR }}
         # Cel 'apk' jest specjalnym celem CMake dodawanym przez Qt, który uruchamia androiddeployqt
         cmake --build . --config Release --target apk
         
-    - name: 7. Wgranie pliku APK jako artefaktu
+    - name: 8. Wgranie pliku APK jako artefaktu
       uses: actions/upload-artifact@v4
       with:
         name: android-apk-release
