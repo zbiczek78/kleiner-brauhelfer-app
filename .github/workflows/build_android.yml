@@ -35,8 +35,9 @@ jobs:
                                   libgl1-mesa-dev libxkbcommon-x11-dev \
                                   libfontconfig1 fuse libxcb-cursor-dev \
                                   libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
-                                  libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 \
-                                  libxcb-xfixes0 libfuse2 libglu1-mesa
+                                  libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+                                  libxcb-xinerama0 libxcb-xfixes0 libfuse2 libglu1-mesa
+
 
 
       ############################################################
