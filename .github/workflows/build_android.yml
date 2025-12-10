@@ -52,10 +52,10 @@ jobs:
           host: 'linux'
           target: 'android'
           arch: ${{ env.ANDROID_ARCH }}
-          modules: 'qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth qt5compat'
+          # 👇 KLUCZOWA ZMIANA: DODANIE JAWNIE 'qtbase-private'
+          modules: 'qtwebengine qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth qt5compat qtbase-private'
           cache: 'true'
-          # 👇 KLUCZOWA ZMIANA: Włącz instalację modułów prywatnych
-          include-private-modules: true
+          include-private-modules: true # Zostawiamy na wszelki wypadek
       
       # ############################################################
       # 5️⃣ Configure project with CMake
