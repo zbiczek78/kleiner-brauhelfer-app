@@ -20,13 +20,8 @@ jobs:
 
     steps:
     
-    # Krok 0: Instalacja narzędzi budujących hosta (KLUCZOWY NOWY KROK)
-    - name: Install Host Build Tools (Ninja, GCC/G++)
-      run: |
-        sudo apt update
-        # build-essential zawiera gcc, g++, make
-        sudo apt install -y build-essential ninja-build
-        
+    # Krok 0: Usunięto instalację build-essential, polegamy na preinstalowanych narzędziach
+    
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -51,7 +46,7 @@ jobs:
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (Użycie Ninja + Eksport Android Paths)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (Jawne ustawienie kompilatorów hosta)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
@@ -73,8 +68,6 @@ jobs:
         QT_ROOT_DIR="${QT_INSTALL_DIR}/${{ env.ARCH_TARGET }}"
         QT_TOOLCHAIN_FILE="${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake"
 
-        echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
-        echo "ANDROID_NDK_ROOT: $ANDROID_NDK_ROOT"
         echo "QT_TOOLCHAIN_FILE: $QT_TOOLCHAIN_FILE"
 
         if [ ! -f "$QT_TOOLCHAIN_FILE" ]; then
@@ -83,10 +76,13 @@ jobs:
         fi
         
         # 5. Konfiguracja CMake
+        # DODANO: Jawne ustawienie kompilatorów hosta (GCC/G++)
         cmake .. \
           -G Ninja \
           -DCMAKE_TOOLCHAIN_FILE="$QT_TOOLCHAIN_FILE" \
-          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_COMPILER=/usr/bin/gcc \
+          -DCMAKE_CXX_COMPILER=/usr/bin/g++
           
     # Krok 5: Kompilacja i budowanie paczki Androida
     - name: Build Android package
