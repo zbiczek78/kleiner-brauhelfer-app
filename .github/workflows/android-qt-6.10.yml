@@ -19,6 +19,14 @@ jobs:
       VERBOSE: 1
 
     steps:
+    
+    # Krok 0: Instalacja narzędzi budujących hosta (KLUCZOWY NOWY KROK)
+    - name: Install Host Build Tools (Ninja, GCC/G++)
+      run: |
+        sudo apt update
+        # build-essential zawiera gcc, g++, make
+        sudo apt install -y build-essential ninja-build
+        
     - name: Checkout code
       uses: actions/checkout@v4
       
@@ -75,7 +83,6 @@ jobs:
         fi
         
         # 5. Konfiguracja CMake
-        # DODANO: -G Ninja, aby użyć generatora Ninja zamiast domyślnego Unix Makefiles
         cmake .. \
           -G Ninja \
           -DCMAKE_TOOLCHAIN_FILE="$QT_TOOLCHAIN_FILE" \
@@ -84,7 +91,6 @@ jobs:
     # Krok 5: Kompilacja i budowanie paczki Androida
     - name: Build Android package
       working-directory: ${{ env.BUILD_DIR }}
-      # Ninja jest używany automatycznie przez --build .
       run: cmake --build . --parallel $(nproc)
       
     # Krok 6: Upload wynikowego artefaktu (APK/AAB)
