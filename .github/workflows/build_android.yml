@@ -52,7 +52,7 @@ jobs:
           host: 'linux'
           target: 'android'
           arch: ${{ env.ANDROID_ARCH }}
-          modules: 'qtwebengine qtwebchannel qtpositioning qtserialport'
+          modules: 'qtwebchannel qtpositioning qtserialport'
           cache: 'true' # Przyspiesza kolejne uruchomienia
 
       # ############################################################
