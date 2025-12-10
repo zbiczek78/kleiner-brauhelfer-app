@@ -43,12 +43,11 @@ jobs:
       ############################################################
       # 3️⃣ Download and install Qt Online Installer
       ############################################################
-      - name: Install Qt Online Installer
-        run: |
-          wget https://download.qt.io/official_releases/online_installers/qt-online-installer-linux-x64-online.run -O qt-installer.run
-          chmod +x qt-installer.run
-          xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24" \
-            ./qt-installer.run --script ./ci/qt-installer-noninteractive.qs
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.5.*
+          modules: qtwebengine qtwebchannel qtpositioning qtserialport
 
 
 
