@@ -1,84 +1,82 @@
-name: Android APK
+name: Build Android (Qt 6.10)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
-
     env:
-      QT_VERSION: "6.8.0"
-      QT_ARCH: "android_arm64_v8a"
-
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+      ANDROID_NDK_ROOT: ${{ runner.temp }}/android-ndk
+      QT_INSTALL_DIR: ${{ runner.temp }}/qt6
+      QT_VERSION: "6.10.0"
+      ANDROID_API_LEVEL: "31"        # dostosuj do potrzeb (np. 28..36)
+      ANDROID_NDK_VERSION: "r27c"    # rekomendowane dla Qt 6.10
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Java
-        uses: actions/setup-java@v3
+      - name: Setup Java (required by Android SDK tools)
+        uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
-          java-version: "17"
+          distribution: 'temurin'
+          java-version: '11'
 
-      - name: Install Android SDK + NDK
-        uses: android-actions/setup-android@v2
-        with:
-          sdk: |
-            platform-tools
-            platforms;android-33
-            build-tools;33.0.2
-          ndk: "26.1.10909125"
-
-      - name: Install dependencies needed by Qt
+      - name: Install Android SDK tools and NDK
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y \
-            build-essential \
-            mesa-common-dev \
-            libgl1-mesa-dev \
-            libxkbcommon-x11-dev \
-            libfontconfig1 \
-            fuse \
-            libxcb-cursor-dev
+          mkdir -p $ANDROID_SDK_ROOT
+          sudo apt-get update
+          sudo apt-get install -y unzip wget
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
+          mv $ANDROID_SDK_ROOT/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-${ANDROID_API_LEVEL}" "build-tools;33.0.2" "ndk;${ANDROID_NDK_VERSION}"
+          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
 
-      - name: Install Qt for Android (6.8)
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: ${{ env.QT_VERSION }}
-          target: android
-          arch: ${{ env.QT_ARCH }}
-
-      - name: Configure with CMake
+      - name: Download and install Qt 6.10 (headless)
         run: |
-          mkdir build
-          cd build
-          ${HOME}/Qt/${QT_VERSION}/${QT_ARCH}/bin/qt-cmake \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=33 \
+          mkdir -p $QT_INSTALL_DIR
+          # Pobierz Qt Online Installer lub pakiet offline; poniżej przykład z Qt Online Installer w trybie skryptowym
+          wget https://download.qt.io/official_releases/online_installers/qt-unified-linux-x64-online.run -O qt-installer.run
+          chmod +x qt-installer.run
+          cat > qt-install-script.qs <<'QS'
+          function Controller() {
+            installer.setDefaultPageVisible(QInstaller.TargetDirectory, true);
+            installer.setValue("TargetDir", "%QT_INSTALL_DIR%");
+          }
+          QS
+          # Uruchom instalator w trybie cichym (dostosuj komponenty do wersji i architektur Android)
+          ./qt-installer.run --script qt-install-script.qs || true
+          # Uwaga: w praktyce możesz użyć offline pakietów Qt lub własnego cache; dostosuj ścieżki instalacji
+          echo "QT_INSTALL_DIR=$QT_INSTALL_DIR" >> $GITHUB_ENV
+
+      - name: Configure build (CMake + Qt6 for Android)
+        run: |
+          mkdir -p build-android
+          cd build-android
+          # Przykładowe wywołanie CMake; dostosuj ścieżki do toolchaina Qt/Android
+          cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            ..
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-${ANDROID_API_LEVEL} \
+            -DCMAKE_TOOLCHAIN_FILE=$QT_INSTALL_DIR/6.10.0/android_arm64_clang_17.0.2/qtbase/lib/cmake/Qt6/Qt6Toolchain.cmake \
+            -DQt6_DIR=$QT_INSTALL_DIR/6.10.0/android_arm64_clang_17.0.2/lib/cmake/Qt6
 
       - name: Build
         run: |
-          cd build
-          cmake --build . --parallel
+          cd build-android
+          cmake --build . -- -j$(nproc)
 
-      - name: Deploy APK
-        run: |
-          cd build
-          ${HOME}/Qt/${QT_VERSION}/${QT_ARCH}/bin/androiddeployqt \
-            --input android-*/android-*.json \
-            --output android-build \
-            --apk \
-            --release \
-            --android-platform android-33 \
-            --jdk ${JAVA_HOME}
-
-      - name: Upload APK
+      - name: Archive APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: kleiner-brauhelfer-android
-          path: build/android-build/*.apk
+          name: android-apk
+          path: build-android/*.apk
