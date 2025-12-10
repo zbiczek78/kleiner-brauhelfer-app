@@ -29,27 +29,29 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y python3 python3-pip unzip wget build-essential ninja-build \
-                                  mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-dev \
-                                  libfontconfig1 fuse libxcb-cursor-dev
+          sudo apt-get install -y python3 python3-pip unzip wget \
+                                  build-essential ninja-build \
+                                  mesa-common-dev libgl1-mesa-dev \
+                                  libxkbcommon-x11-dev libfontconfig1 \
+                                  fuse libxcb-cursor-dev
 
       ############################################################
-      # 3️⃣ Install Qt 6.5.3 (Android + Desktop)
+      # 3️⃣ Install Qt 6.5.3 (Desktop + Android)
       ############################################################
       - name: Install aqtinstall
-        run: pip3 install "aqtinstall>=3.2.0"
+        run: pip3 install "aqtinstall>=3.3.0"
+
+      - name: Install Qt 6.5.3 Desktop (gcc_64)
+        run: |
+          aqt install-qt linux desktop $QT_VERSION gcc_64 \
+            --outputdir $HOME/Qt \
+            --modules qtcharts qtnetworkauth qtwebchannel qtpositioning
 
       - name: Install Qt 6.5.3 Android (arm64-v8a)
         run: |
           aqt install-qt linux android $QT_VERSION android_arm64_v8a \
             --outputdir $HOME/Qt \
             --modules qtcharts qtnetworkauth qtwebchannel qtpositioning
-
-      - name: Install Qt 6.5.3 Desktop (gcc_64)
-        run: |
-          aqt install-qt linux desktop $QT_VERSION gcc_64 \
-            --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth
 
       ############################################################
       # 4️⃣ Install Android SDK + NDK
@@ -84,4 +86,33 @@ jobs:
         run: |
           cmake -S . -B build-android \
             -G "Ninja" \
-            -DCMAKE_TOOLCHAIN_FILE=$HOME/Qt/$QT_VERSION/android_arm64_v8a/lib/cmake/Qt6/Qt6_
+            -DCMAKE_TOOLCHAIN_FILE=$HOME/Qt/$QT_VERSION/android_arm64_v8a/lib/cmake/Qt6/Qt6AndroidToolchain.cmake \
+            -DQT_HOST_PATH=$HOME/Qt/$QT_VERSION/gcc_64 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-33 \
+            -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
+
+      - name: Build project
+        run: cmake --build build-android --parallel
+
+      ############################################################
+      # 6️⃣ Deploy APK
+      ############################################################
+      - name: Deploy APK using androiddeployqt
+        run: |
+          $HOME/Qt/$QT_VERSION/android_arm64_v8a/bin/androiddeployqt \
+            --input build-android/android-Qt6_deployment_settings.json \
+            --output build-android/apk \
+            --android-platform android-33 \
+            --gradle \
+            --release
+
+      ############################################################
+      # 7️⃣ Upload APK artifact
+      ############################################################
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kleiner-brauhelfer-app-android-apk
+          path: build-android/apk/build/outputs/apk/release/*.apk
