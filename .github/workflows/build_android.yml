@@ -52,10 +52,11 @@ jobs:
           host: 'linux'
           target: 'android'
           arch: ${{ env.ANDROID_ARCH }}
-          # 👇 KLUCZOWA ZMIANA: DODANIE JAWNIE 'qtbase-private'
-          modules: 'qtwebengine qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth qt5compat qtbase-private'
+          # Usunięto: qtwebengine (bo zgłasza błąd w aqtinstall)
+          # Usunięto: qtbase-private (bo zgłasza błąd w aqtinstall)
+          modules: 'qtwebchannel qtpositioning qtserialport qtcharts qtnetworkauth qt5compat'
           cache: 'true'
-          include-private-modules: true # Zostawiamy na wszelki wypadek
+          include-private-modules: true # Wymagane dla CorePrivate
       
       # ############################################################
       # 5️⃣ Configure project with CMake
