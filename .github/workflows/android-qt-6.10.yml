@@ -24,9 +24,9 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Install dependencies
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install build-essential mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-dev libfontconfig1 fuse libxcb-cursor-dev -y
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install build-essential mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-dev libfontconfig1 fuse libxcb-cursor-dev -y
       
     # Krok 1: Konfiguracja Javy
     - name: Set up Java
