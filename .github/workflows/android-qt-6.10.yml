@@ -11,7 +11,7 @@ jobs:
     
     # Zmienne środowiskowe
     env:
-      QT_VERSION: 6.10
+      QT_VERSION: 6.5.3 
       BUILD_DIR: build-android
       PLATFORM_TARGET: android
       ARCH_TARGET: android_arm64_v8a 
@@ -22,11 +22,6 @@ jobs:
     
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install build-essential mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-dev libfontconfig1 fuse libxcb-cursor-dev -y
       
     # Krok 1: Konfiguracja Javy
     - name: Set up Java
@@ -35,15 +30,15 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
         
-    # Krok 2: Instalacja Qt, Android SDK i NDK
+    # Krok 2: Instalacja Qt, Android SDK i NDK (KLUCZOWA ZMIANA: Używamy @v2)
     - name: Install Qt and Android toolchain
-      uses: jurplel/install-qt-action@v3
+      uses: jurplel/install-qt-action@v2 
       with:
         version: ${{ env.QT_VERSION }}
         target: ${{ env.PLATFORM_TARGET }} 
         arch: ${{ env.ARCH_TARGET }}
         dir: ${{ runner.tool_cache }}
-        cache: true 
+        # Usunięto cache: true, co może wpływać na to, jak akcja przetwarza wersję
         
     # Krok 3: Przygotowanie katalogu roboczego
     - name: Create build directory
@@ -62,9 +57,9 @@ jobs:
         QT_ROOT_DIR="${QT_BASE_CACHE_DIR}/${{ env.ARCH_TARGET }}"
         QT_TOOLCHAIN_FILE="${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake"
         
-        # 2. Ustalanie ścieżek Android NDK/SDK (KLUCZOWA KOREKTA: NDK jest bezpośrednio w katalogu)
+        # 2. Ustalanie ścieżek Android NDK/SDK (Potwierdzona ścieżka V21)
         ANDROID_SDK_ROOT="${QT_BASE_CACHE_DIR}/android_sdk"
-        ANDROID_NDK_ROOT="${QT_BASE_CACHE_DIR}/android_ndk" # Ustawiamy NDK ROOT na folder bazowy
+        ANDROID_NDK_ROOT="${QT_BASE_CACHE_DIR}/android_ndk" 
         NDK_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake"
         
         # 3. Ustawienie zmiennych środowiskowych
