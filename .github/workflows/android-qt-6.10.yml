@@ -44,34 +44,36 @@ jobs:
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (Uproszczone odnajdywanie ścieżki)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (Diagnostyka i Utwardzona ścieżka)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
       run: |
-        # 1. Odnajdywanie katalogów Qt (Metoda V14)
+        # 1. Odnajdywanie katalogów Qt (KLUCZOWA ZMIANA)
         QT_BASE_CACHE_DIR="/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}"
         
-        # Używamy ls do znalezienia podkatalogu (np. 6.5.3-0)
-        # Znajduje: /opt/hostedtoolcache/Qt/6.5.3/6.5.3-0
-        QT_INSTALL_DIR=$(ls -d ${QT_BASE_CACHE_DIR}/*/ | head -n 1)
+        # JAWNA DIAGNOSTYKA: Wypisz zawartość katalogu bazowego Qt
+        echo "Zawartość QT_BASE_CACHE_DIR ($QT_BASE_CACHE_DIR):"
+        ls -F "$QT_BASE_CACHE_DIR" 2>/dev/null || echo "Katalog bazowy Qt nie istnieje."
         
-        # Usuwamy ewentualny znak '/' na końcu ścieżki
-        QT_INSTALL_DIR="${QT_INSTALL_DIR%/}"
-
-
-        # 2. Ustalanie ścieżek Android NDK (Najbezpieczniejsza, często używana lokalizacja)
-        # Po instalacji przez install-qt-action, NDK i SDK są umieszczane w $HOME/Android
-        # Zmienna HOME jest predefiniowana jako /home/runner
+        # Używamy find do zlokalizowania podkatalogu (np. 6.5.3-0)
+        # Będziemy szukać folderu, który zawiera naszą architekturę docelową
+        QT_INSTALL_DIR=$(find "$QT_BASE_CACHE_DIR" -maxdepth 2 -type d -name "${{ env.ARCH_TARGET }}" | head -n 1)
+        
+        if [ -z "$QT_INSTALL_DIR" ]; then
+            echo "BŁĄD KRYTYCZNY QT: Nie znaleziono katalogu instalacyjnego Qt dla ${{ env.ARCH_TARGET }}."
+            exit 1
+        fi
+        
+        # QT_ROOT_DIR to ścieżka do arch_target, więc skracamy
+        QT_ROOT_DIR="${QT_INSTALL_DIR}"
+        
+        # 2. Ustalanie ścieżek Android NDK (Wróć do metody V14)
         SDK_ROOT="/home/runner/Android/Sdk"
-        
-        # Dynamically find the NDK version folder inside $HOME/Android/Sdk/ndk/
         NDK_DIR_BASE="${SDK_ROOT}/ndk"
         
-        # Używamy find do zlokalizowania folderu wersji (np. 25.2.8791522)
         NDK_VERSION_DIR=$(find "$NDK_DIR_BASE" -maxdepth 1 -type d -name "*" -not -name ".*" -print -quit 2>/dev/null)
-
-        # Upewniamy się, że NDK_ROOT jest ustawiony na folder WERSJI (np. 25.2.8791522)
+        
         ANDROID_NDK_ROOT="${NDK_VERSION_DIR}"
         NDK_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake"
         
@@ -81,10 +83,9 @@ jobs:
         export ANDROID_NDK_ROOT="$ANDROID_NDK_ROOT"
 
         # 4. Ustalanie ścieżki do Toolchain Qt
-        QT_ROOT_DIR="${QT_INSTALL_DIR}/${{ env.ARCH_TARGET }}"
         QT_TOOLCHAIN_FILE="${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake"
 
-        echo "QT_INSTALL_DIR: $QT_INSTALL_DIR"
+        echo "QT_ROOT_DIR: $QT_ROOT_DIR"
         echo "ANDROID_NDK_ROOT: $ANDROID_NDK_ROOT"
         echo "NDK_TOOLCHAIN_FILE: $NDK_TOOLCHAIN_FILE"
 
