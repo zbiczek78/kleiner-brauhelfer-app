@@ -9,16 +9,19 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    env:
-      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
-      ANDROID_NDK_ROOT: ${{ runner.temp }}/android-ndk
-      QT_INSTALL_DIR: ${{ runner.temp }}/qt6
-      QT_VERSION: "6.10.0"
-      ANDROID_API_LEVEL: "31"        # dostosuj do potrzeb (np. 28..36)
-      ANDROID_NDK_VERSION: "r27c"    # rekomendowane dla Qt 6.10
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Prepare environment variables
+        run: |
+          echo "ANDROID_SDK_ROOT=${RUNNER_TEMP}/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=${RUNNER_TEMP}/android-ndk" >> $GITHUB_ENV
+          echo "QT_INSTALL_DIR=${RUNNER_TEMP}/qt6" >> $GITHUB_ENV
+          echo "QT_VERSION=6.10.0" >> $GITHUB_ENV
+          echo "ANDROID_API_LEVEL=31" >> $GITHUB_ENV
+          echo "ANDROID_NDK_VERSION=r27c" >> $GITHUB_ENV
 
       - name: Setup Java (required by Android SDK tools)
         uses: actions/setup-java@v4
@@ -28,46 +31,38 @@ jobs:
 
       - name: Install Android SDK tools and NDK
         run: |
-          mkdir -p $ANDROID_SDK_ROOT
+          mkdir -p "$ANDROID_SDK_ROOT"
           sudo apt-get update
           sudo apt-get install -y unzip wget
           wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-          unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
-          mv $ANDROID_SDK_ROOT/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-${ANDROID_API_LEVEL}" "build-tools;33.0.2" "ndk;${ANDROID_NDK_VERSION}"
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
+          unzip cmdline-tools.zip -d "$ANDROID_SDK_ROOT"
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/"* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-${ANDROID_API_LEVEL}" "build-tools;33.0.2" "ndk;${ANDROID_NDK_VERSION}"
+          echo "Installed Android SDK and NDK."
 
-      - name: Download and install Qt 6.10 (headless)
+      - name: Download and install Qt 6.10 (example)
         run: |
-          mkdir -p $QT_INSTALL_DIR
-          # Pobierz Qt Online Installer lub pakiet offline; poniżej przykład z Qt Online Installer w trybie skryptowym
+          mkdir -p "$QT_INSTALL_DIR"
+          # W CI lepiej użyć offline pakietów lub cache; poniżej przykład pobrania instalatora online
           wget https://download.qt.io/official_releases/online_installers/qt-unified-linux-x64-online.run -O qt-installer.run
           chmod +x qt-installer.run
-          cat > qt-install-script.qs <<'QS'
-          function Controller() {
-            installer.setDefaultPageVisible(QInstaller.TargetDirectory, true);
-            installer.setValue("TargetDir", "%QT_INSTALL_DIR%");
-          }
-          QS
-          # Uruchom instalator w trybie cichym (dostosuj komponenty do wersji i architektur Android)
-          ./qt-installer.run --script qt-install-script.qs || true
-          # Uwaga: w praktyce możesz użyć offline pakietów Qt lub własnego cache; dostosuj ścieżki instalacji
-          echo "QT_INSTALL_DIR=$QT_INSTALL_DIR" >> $GITHUB_ENV
+          # Uwaga: instalator online może wymagać interakcji; w praktyce lepiej użyć offline installerów lub prebuilt Qt w cache
+          ./qt-installer.run --help || true
+          echo "Qt installer downloaded (dostosuj instalację do własnego procesu CI)."
 
       - name: Configure build (CMake + Qt6 for Android)
         run: |
           mkdir -p build-android
           cd build-android
-          # Przykładowe wywołanie CMake; dostosuj ścieżki do toolchaina Qt/Android
+          # Dostosuj toolchain i ścieżki Qt zgodnie z rzeczywistą instalacją Qt w CI
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-${ANDROID_API_LEVEL} \
-            -DCMAKE_TOOLCHAIN_FILE=$QT_INSTALL_DIR/6.10.0/android_arm64_clang_17.0.2/qtbase/lib/cmake/Qt6/Qt6Toolchain.cmake \
-            -DQt6_DIR=$QT_INSTALL_DIR/6.10.0/android_arm64_clang_17.0.2/lib/cmake/Qt6
+            -DANDROID_PLATFORM=android-${ANDROID_API_LEVEL}
+            # -DCMAKE_TOOLCHAIN_FILE=$QT_INSTALL_DIR/6.10.0/<android-toolchain-path>/toolchain.cmake \
+            # -DQt6_DIR=$QT_INSTALL_DIR/6.10.0/<android-lib-path>/lib/cmake/Qt6
 
       - name: Build
         run: |
