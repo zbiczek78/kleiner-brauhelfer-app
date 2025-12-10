@@ -12,7 +12,7 @@ jobs:
     env:
       ANDROID_SDK_ROOT: ${{ github.workspace }}/Android/Sdk
       ANDROID_NDK_ROOT: ${{ github.workspace }}/Android/Sdk/ndk
-      QT_VERSION: "6.10.0"
+      QT_VERSION: "6.8.0"
       QT_ARCH: "android_arm64_v8a"
 
     steps:
@@ -34,7 +34,7 @@ jobs:
             build-tools;33.0.2
           ndk: "26.1.10909125"
 
-      - name: Install Qt 6.10 for Android
+      - name: Install Qt 6.8 for Android
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
@@ -46,8 +46,6 @@ jobs:
           mkdir build
           cd build
           ${HOME}/Qt/${QT_VERSION}/${QT_ARCH}/bin/qt-cmake \
-            -DANDROID_SDK_ROOT=${ANDROID_SDK_ROOT} \
-            -DANDROID_NDK_ROOT=${ANDROID_NDK_ROOT} \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=33 \
             -DCMAKE_BUILD_TYPE=Release \
@@ -58,13 +56,12 @@ jobs:
           cd build
           cmake --build . --parallel
 
-      - name: Deploy APK (androiddeployqt)
+      - name: Deploy APK
         run: |
           cd build
           ${HOME}/Qt/${QT_VERSION}/${QT_ARCH}/bin/androiddeployqt \
             --input android-*/android-*.json \
             --output android-build \
-            --aab \
             --apk \
             --release \
             --android-platform android-33 \
