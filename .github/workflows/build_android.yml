@@ -40,10 +40,10 @@ jobs:
       ############################################################
       - name: Download Qt Online Installer
         run: |
-          wget https://download.qt.io/official_releases/online_installers/qt-unified-linux-x64-online.run -O qt-installer.run
+          wget https://download.qt.io/official_releases/online_installers/qt-online-installer-linux-x64-online.run -O qt-installer.run
           chmod +x qt-installer.run
-          # Install silently to $QT_INSTALL_DIR
           ./qt-installer.run --script ./ci/qt-installer-noninteractive.qs
+
 
       ############################################################
       # 4️⃣ Install Android SDK + NDK
