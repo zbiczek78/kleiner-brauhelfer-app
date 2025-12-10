@@ -2,9 +2,9 @@ name: Android Qt 6.5.3 Build
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   workflow_dispatch:
 
 jobs:
@@ -41,87 +41,4 @@ jobs:
       - name: Install aqtinstall
         run: pip3 install "aqtinstall>=3.3.0"
 
-      # 3a. Desktop Qt (gcc_64) MUST be installed first
-      - name: Install Qt Desktop 6.5.3 gcc_64
-        run: |
-          aqt install-qt linux desktop $QT_VERSION gcc_64 \
-            --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth qtwebchannel qtpositioning
-
-      # 3b. Android Qt (arm64-v8a)
-      - name: Install Qt Android 6.5.3 arm64-v8a
-        run: |
-          aqt install-qt linux android $QT_VERSION android_arm64_v8a \
-            --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth qtwebchannel qtpositioning
-
-      ############################################################
-      # 4️⃣ Install Android SDK + NDK
-      ############################################################
-      - name: Install Android SDK + NDK
-        run: |
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          cd $ANDROID_SDK_ROOT
-
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdtools.zip
-          unzip cmdtools.zip -d cmdline-tools-temp
-          mkdir -p cmdline-tools/latest
-          mv cmdline-tools-temp/cmdline-tools/* cmdline-tools/latest/
-
-          yes | cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} --licenses
-
-          cmdline-tools/latest/bin/sdkmanager --sdk_root=${ANDROID_SDK_ROOT} \
-            "platform-tools" \
-            "platforms;android-33" \
-            "build-tools;33.0.2" \
-            "ndk;$ANDROID_NDK_VERSION"
-
-      - name: Add Qt and Android SDK to PATH
-        run: |
-          echo "$HOME/Qt/$QT_VERSION/android_arm64_v8a/bin" >> $GITHUB_PATH
-          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
-
-      ############################################################
-      # 5️⃣ Verify Qt Android toolchain exists
-      ############################################################
-      - name: Verify Qt Android toolchain
-        run: |
-          ls -l $HOME/Qt/$QT_VERSION/android_arm64_v8a/lib/cmake/Qt6/Qt6AndroidToolchain.cmake
-
-      ############################################################
-      # 6️⃣ Configure project with CMake
-      ############################################################
-      - name: Configure project (CMake)
-        run: |
-          cmake -S . -B build-android \
-            -G "Ninja" \
-            -DCMAKE_TOOLCHAIN_FILE=$HOME/Qt/$QT_VERSION/android_arm64_v8a/lib/cmake/Qt6/Qt6AndroidToolchain.cmake \
-            -DQT_HOST_PATH=$HOME/Qt/$QT_VERSION/gcc_64 \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-33 \
-            -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
-
-      - name: Build project
-        run: cmake --build build-android --parallel
-
-      ############################################################
-      # 7️⃣ Deploy APK
-      ############################################################
-      - name: Deploy APK using androiddeployqt
-        run: |
-          $HOME/Qt/$QT_VERSION/android_arm64_v8a/bin/androiddeployqt \
-            --input build-android/android-Qt6_deployment_settings.json \
-            --output build-android/apk \
-            --android-platform android-33 \
-            --gradle \
-            --release
-
-      ############################################################
-      # 8️⃣ Upload APK artifact
-      ############################################################
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: kleiner-brauhelfer-app-android-apk
-          path: build-android/apk/build/outputs/apk/release/*.apk
+      # 3a. Desktop Qt MUST be instal
