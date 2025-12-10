@@ -41,13 +41,15 @@ jobs:
       - name: Install aqtinstall
         run: pip3 install "aqtinstall>=3.3.0"
 
-      - name: Install Qt 6.5.3 Desktop (gcc_64)
+      # 3a. Desktop Qt (gcc_64) MUST be installed first
+      - name: Install Qt Desktop 6.5.3 gcc_64
         run: |
           aqt install-qt linux desktop $QT_VERSION gcc_64 \
             --outputdir $HOME/Qt \
             --modules qtcharts qtnetworkauth qtwebchannel qtpositioning
 
-      - name: Install Qt 6.5.3 Android (arm64-v8a)
+      # 3b. Android Qt (arm64-v8a)
+      - name: Install Qt Android 6.5.3 arm64-v8a
         run: |
           aqt install-qt linux android $QT_VERSION android_arm64_v8a \
             --outputdir $HOME/Qt \
@@ -80,7 +82,14 @@ jobs:
           echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
 
       ############################################################
-      # 5️⃣ Configure project with CMake
+      # 5️⃣ Verify Qt Android toolchain exists
+      ############################################################
+      - name: Verify Qt Android toolchain
+        run: |
+          ls -l $HOME/Qt/$QT_VERSION/android_arm64_v8a/lib/cmake/Qt6/Qt6AndroidToolchain.cmake
+
+      ############################################################
+      # 6️⃣ Configure project with CMake
       ############################################################
       - name: Configure project (CMake)
         run: |
@@ -97,7 +106,7 @@ jobs:
         run: cmake --build build-android --parallel
 
       ############################################################
-      # 6️⃣ Deploy APK
+      # 7️⃣ Deploy APK
       ############################################################
       - name: Deploy APK using androiddeployqt
         run: |
@@ -109,7 +118,7 @@ jobs:
             --release
 
       ############################################################
-      # 7️⃣ Upload APK artifact
+      # 8️⃣ Upload APK artifact
       ############################################################
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
