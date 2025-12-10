@@ -44,7 +44,7 @@ jobs:
     - name: Create build directory
       run: mkdir -p ${{ env.BUILD_DIR }}
       
-    # Krok 4: Konfiguracja projektu za pomocą CMake (Ustawienie ścieżek NDK/SDK)
+    # Krok 4: Konfiguracja projektu za pomocą CMake (Odnajdywanie ścieżki + NDK w $HOME)
     - name: Configure CMake project for Android
       working-directory: ${{ env.BUILD_DIR }}
       shell: bash
@@ -53,33 +53,36 @@ jobs:
         QT_BASE_CACHE_DIR="/opt/hostedtoolcache/Qt/${{ env.QT_VERSION }}"
         QT_INSTALL_DIR=$(find "$QT_BASE_CACHE_DIR" -maxdepth 1 -type d -print -quit)
 
-        # 2. Ustalanie ścieżek Android SDK/NDK
-        # NDK jest instalowane w podkatalogu o nazwie wersji (np. android-ndk-r25c)
-        SDK_ROOT="${QT_INSTALL_DIR}/android_sdk"
-        NDK_DIR_BASE="${QT_INSTALL_DIR}/android_ndk"
+        # 2. Ustalanie ścieżek Android SDK/NDK (KLUCZOWA ZMIANA: Szukamy w $HOME)
+        SDK_ROOT="${HOME}/Android/Sdk"
+        NDK_DIR_BASE="${HOME}/Android/Sdk/ndk"
 
-        # Dynamically find the NDK version directory (e.g., android-ndk-r25c)
-        NDK_VERSION_DIR=$(find "$NDK_DIR_BASE" -maxdepth 1 -type d -name "android-ndk-*" -print -quit)
+        # Dynamically find the NDK version directory (e.g., ndk/25.2.8791522)
+        # NDK jest instalowane jako wersja API lub katalog z datą
+        NDK_VERSION_DIR=$(find "$NDK_DIR_BASE" -maxdepth 1 -type d -name "*" -print -quit 2>/dev/null)
         
-        # Jeśli nie znaleziono podkatalogu NDK w wersji, użyjemy domyślnej ścieżki bazowej (mniej prawdopodobne, ale bezpieczne)
+        # Ostateczne ustawienie NDK_ROOT
+        ANDROID_NDK_ROOT="${NDK_VERSION_DIR}"
+        NDK_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake"
+        
+        # Jeśli find zawiódł, użyjemy najbardziej prawdopodobnej domyślnej ścieżki:
         if [ -z "$NDK_VERSION_DIR" ]; then
-          NDK_VERSION_DIR="$NDK_DIR_BASE"
+          # Opcja 1: spróbujmy NDK zainstalowane bezpośrednio w $HOME
+          NDK_TOOLCHAIN_FILE=$(find "$HOME" -name "android.toolchain.cmake" | grep "android-ndk" | head -n 1)
+          ANDROID_NDK_ROOT=$(dirname $(dirname $(dirname "$NDK_TOOLCHAIN_FILE")))
         fi
         
-        NDK_TOOLCHAIN_FILE="${NDK_VERSION_DIR}/build/cmake/android.toolchain.cmake"
-        
-        # 3. Ustawienie zmiennych środowiskowych dla CMake/Qt
-        export ANDROID_SDK_ROOT="$SDK_ROOT"
-        export ANDROID_NDK_ROOT="$NDK_VERSION_DIR" # Należy wskazywać na folder zawierający 'build/cmake'
+        # Upewniamy się, że JAVA_HOME jest widoczny
         export JAVA_HOME="$JAVA_HOME" 
+        export ANDROID_SDK_ROOT="$SDK_ROOT"
+        export ANDROID_NDK_ROOT="$ANDROID_NDK_ROOT"
 
-        # 4. Ustalanie ścieżki do Toolchain Qt
+        # 3. Ustalanie ścieżki do Toolchain Qt
         QT_ROOT_DIR="${QT_INSTALL_DIR}/${{ env.ARCH_TARGET }}"
         QT_TOOLCHAIN_FILE="${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake"
 
         echo "ANDROID_NDK_ROOT (Actual): $ANDROID_NDK_ROOT"
         echo "NDK_TOOLCHAIN_FILE (Calculated): $NDK_TOOLCHAIN_FILE"
-        echo "QT_TOOLCHAIN_FILE: $QT_TOOLCHAIN_FILE"
 
         if [ ! -f "$QT_TOOLCHAIN_FILE" ]; then
           echo "Błąd: Nie znaleziono pliku toolchain ($QT_TOOLCHAIN_FILE)."
@@ -88,13 +91,12 @@ jobs:
         
         if [ ! -f "$NDK_TOOLCHAIN_FILE" ]; then
           echo "BŁĄD KRYTYCZNY NDK: Oczekiwany plik NDK toolchain nie istnieje: $NDK_TOOLCHAIN_FILE"
-          echo "Zawartość katalogu NDK_DIR_BASE:"
-          ls -R "$NDK_DIR_BASE"
+          echo "Zawartość katalogu $HOME/Android/ (diagnostyka):"
+          ls -R "$HOME/Android/" 2>/dev/null || echo "Katalog $HOME/Android/ nie istnieje lub nie jest dostępny."
           exit 1
         fi
 
-        # 5. Konfiguracja CMake
-        # Używamy QT_CHAINLOAD_TOOLCHAIN_FILE, aby jawnie przekazać poprawną ścieżkę do NDK
+        # 4. Konfiguracja CMake
         cmake .. \
           -G Ninja \
           -DCMAKE_TOOLCHAIN_FILE="$QT_TOOLCHAIN_FILE" \
