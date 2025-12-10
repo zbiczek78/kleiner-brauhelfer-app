@@ -16,6 +16,7 @@ jobs:
 
       - name: Set environment paths
         run: |
+          # Poprawne użycie zmiennej środowiskowej runner
           echo "ANDROID_SDK_ROOT=$RUNNER_TEMP/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_NDK_ROOT=$RUNNER_TEMP/android-ndk" >> $GITHUB_ENV
           echo "QT_INSTALL_DIR=$RUNNER_TEMP/qt6" >> $GITHUB_ENV
@@ -45,6 +46,7 @@ jobs:
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
           unzip -q cmdline-tools.zip -d "$ANDROID_SDK_ROOT"
 
+          # Poprawna struktura cmdline-tools
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
           mv "$ANDROID_SDK_ROOT/cmdline-tools/"* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
 
@@ -58,21 +60,21 @@ jobs:
 
       - name: (Placeholder) Install Qt 6.10
         run: |
-          echo "👉 Tutaj musisz zainstalować Qt, np:"
+          echo "👉 Tutaj musisz zainstalować Qt 6.10, np.:"
           echo "wget ...; tar -xf qt-6.10.0-android.tar.xz -C \"$QT_INSTALL_DIR\""
           mkdir -p "$QT_INSTALL_DIR"
           ls -la "$QT_INSTALL_DIR" || true
 
       - name: Configure CMake
         env:
-          ANDROID_API_LEVEL: ${{ env.ANDROID_API_LEVEL }}
-          QT_INSTALL_DIR: ${{ env.QT_INSTALL_DIR }}
+          ANDROID_API_LEVEL: $ANDROID_API_LEVEL
+          QT_INSTALL_DIR: $QT_INSTALL_DIR
         run: |
           set -e
           mkdir -p build-android
           cd build-android
 
-          # Szukanie faktycznego pliku:
+          # Automatyczne wyszukanie pliku toolchain i Qt6_DIR
           TOOLCHAIN_FILE=$(find "$QT_INSTALL_DIR" -type f -name "Qt6Toolchain.cmake" | head -n1)
           QT6_DIR=$(find "$QT_INSTALL_DIR" -type d -path "*/lib/cmake/Qt6" | head -n1)
 
