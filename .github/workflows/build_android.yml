@@ -17,11 +17,14 @@ jobs:
       ANDROID_NDK_VERSION: 23.1.7779620
 
     steps:
+      ############################################################
+      # 1️⃣ Checkout repository
+      ############################################################
       - name: Checkout repository
         uses: actions/checkout@v4
 
       ############################################################
-      # SYSTEM DEPENDENCIES
+      # 2️⃣ Install system dependencies
       ############################################################
       - name: Install system dependencies
         run: |
@@ -31,7 +34,7 @@ jobs:
                                   libfontconfig1 fuse libxcb-cursor-dev
 
       ############################################################
-      # INSTALL QT 6.5.3
+      # 3️⃣ Install Qt 6.5.3 (Android + Desktop)
       ############################################################
       - name: Install aqtinstall
         run: pip3 install "aqtinstall>=3.2.0"
@@ -40,7 +43,7 @@ jobs:
         run: |
           aqt install-qt linux android $QT_VERSION android_arm64_v8a \
             --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth
+            --modules qtcharts qtnetworkauth qtwebengine qtwebchannel qtpositioning
 
       - name: Install Qt 6.5.3 Desktop (gcc_64)
         run: |
@@ -49,7 +52,7 @@ jobs:
             --modules qtcharts qtnetworkauth
 
       ############################################################
-      # INSTALL ANDROID SDK + NDK
+      # 4️⃣ Install Android SDK + NDK
       ############################################################
       - name: Install Android SDK + NDK
         run: |
@@ -75,36 +78,10 @@ jobs:
           echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
 
       ############################################################
-      # CONFIGURE PROJECT WITH CMAKE
+      # 5️⃣ Configure project with CMake
       ############################################################
       - name: Configure project (CMake)
         run: |
           cmake -S . -B build-android \
             -G "Ninja" \
-            -DCMAKE_TOOLCHAIN_FILE=$HOME/Qt/$QT_VERSION/android_arm64_v8a/lib/cmake/Qt6/Qt6AndroidToolchain.cmake \
-            -DQT_HOST_PATH=$HOME/Qt/$QT_VERSION/gcc_64 \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-33 \
-            -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
-
-      - name: Build project
-        run: cmake --build build-android --parallel
-
-      ############################################################
-      # DEPLOY APK
-      ############################################################
-      - name: Deploy APK using androiddeployqt
-        run: |
-          $HOME/Qt/$QT_VERSION/android_arm64_v8a/bin/androiddeployqt \
-            --input build-android/android-Qt6_deployment_settings.json \
-            --output build-android/apk \
-            --android-platform android-33 \
-            --gradle \
-            --release
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: kleiner-brauhelfer-app-android-apk
-          path: build-android/apk/build/outputs/apk/release/*.apk
+            -DCMAKE_TOOLCHAIN_FILE=$HOME/Qt/$QT_VERSION/android_arm64_v8a/lib/cmake/Qt6/Qt6_
