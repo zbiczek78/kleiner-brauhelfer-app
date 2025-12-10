@@ -32,13 +32,13 @@ jobs:
         run: |
           aqt install-qt linux android 6.5.3 android_arm64_v8a \
             --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth
+            --modules qtcharts qtnetworkauth qtcore5compat
 
       - name: Install Qt 6.5.3 Desktop (gcc_64)
         run: |
           aqt install-qt linux desktop 6.5.3 gcc_64 \
             --outputdir $HOME/Qt \
-            --modules qtcharts qtnetworkauth
+            --modules qtcharts qtnetworkauth qtcore5compat
 
 
 
