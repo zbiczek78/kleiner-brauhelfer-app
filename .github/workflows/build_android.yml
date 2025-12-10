@@ -52,8 +52,9 @@ jobs:
           host: 'linux'
           target: 'android'
           arch: ${{ env.ANDROID_ARCH }}
-          modules: 'qtwebchannel qtpositioning qtserialport'
-          cache: 'true' # Przyspiesza kolejne uruchomienia
+          # 👇 DODANO 'qtcharts' DO LISTY PONIŻEJ
+          modules: 'qtwebchannel qtpositioning qtserialport qtcharts'
+          cache: 'true'
 
       # ############################################################
       # 5️⃣ Configure project with CMake
