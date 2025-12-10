@@ -56,25 +56,7 @@ jobs:
           cache: 'true'
           # 👇 KLUCZOWA ZMIANA: Włącz instalację modułów prywatnych
           include-private-modules: true
-      # ############################################################
-      # 4b. Dodanie androiddeployqt do PATH
-      # ############################################################
-      - name: Add androiddeployqt to PATH
-        run: |
-          # Używamy zmiennej QT_ROOT ustawionej przez jurplel/install-qt-action
-          # Przechodzimy do katalogu nadrzędnego (np. .../Qt/6.5.3)
-          QT_BASE_DIR=$(dirname $(dirname $QT_ROOT))
-          
-          # Stąd szukamy ścieżki do androiddeployqt
-          QT_ANDROID_BIN_PATH=$(find "$QT_BASE_DIR" -type d -name "android_arm64_v8a" -prune -exec echo {}/bin \;)
-          
-          if [ -d "$QT_ANDROID_BIN_PATH" ]; then
-            echo "Znaleziono ścieżkę do androiddeployqt: $QT_ANDROID_BIN_PATH"
-            echo "$QT_ANDROID_BIN_PATH" >> $GITHUB_PATH
-          else
-            echo "Błąd: Nie znaleziono katalogu bin dla Android Qt."
-            exit 1
-          fi
+      
       # ############################################################
       # 5️⃣ Configure project with CMake
       # ############################################################
@@ -104,7 +86,8 @@ jobs:
       # ############################################################
       - name: Build APK using androiddeployqt
         run: |
-          # Użycie pełnej, jawnej, trwale zakodowanej ścieżki
+          # Pełna ścieżka do androiddeployqt, oparta na zmiennych ze środowiska i github.workspace.
+          # To jest najbardziej odporne na błędy rozwiązanie.
           "${{ github.workspace }}/Qt/${{ env.QT_VERSION }}/android_arm64_v8a/bin/androiddeployqt" \
             --input build-android/android-Qt6_deployment_settings.json \
             --output build-android/android-build \
