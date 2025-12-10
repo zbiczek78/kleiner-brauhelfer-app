@@ -1,4 +1,4 @@
-name: Android Qt 6.5.3 Build
+name: Android Qt 6.5.2 Build
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      QT_VERSION: 6.5.3
+      QT_VERSION: 6.5.2
       ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
       ANDROID_NDK_VERSION: 23.1.7779620
 
@@ -36,20 +36,20 @@ jobs:
                                   fuse libxcb-cursor-dev
 
       ############################################################
-      # 3️⃣ Install Qt 6.5.3 (Desktop + Android)
+      # 3️⃣ Install Qt 6.5.2 (Desktop + Android)
       ############################################################
       - name: Install aqtinstall
         run: pip3 install "aqtinstall>=3.3.0"
 
       # 3a. Desktop Qt MUST be installed first
-      - name: Install Qt Desktop 6.5.3 gcc_64
+      - name: Install Qt Desktop 6.5.2 gcc_64
         run: |
           aqt install-qt linux desktop $QT_VERSION gcc_64 \
             --outputdir $HOME/Qt \
             --modules qtcharts qtnetworkauth qtwebchannel qtpositioning qtserialport
 
-      # 3b. Android Qt arm64-v8a (bez WebEngine)
-      - name: Install Qt Android 6.5.3 arm64-v8a
+      # 3b. Android Qt arm64-v8a
+      - name: Install Qt Android 6.5.2 arm64-v8a
         run: |
           aqt install-qt linux android $QT_VERSION android_arm64_v8a \
             --outputdir $HOME/Qt \
