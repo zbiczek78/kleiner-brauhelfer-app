@@ -31,14 +31,16 @@ jobs:
         cache: true
 
     # ------------------------------
-    # Install Android cmdline-tools
+    # Install Android cmdline-tools (NO "latest", only "tools/")
     # ------------------------------
     - name: Install Android cmdline-tools
       run: |
         mkdir -p "$ANDROID_HOME/cmdline-tools"
         cd "$ANDROID_HOME/cmdline-tools"
-        # ensure clean install
+
+        # usuwamy tylko własną instalację, nie dotykamy "latest"
         rm -rf tools
+
         wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
         mkdir tools
         unzip tools.zip -d tools
@@ -89,7 +91,7 @@ jobs:
         ninja apk
 
     # ------------------------------
-    # Upload resulting APK
+    # Upload APK artifact
     # ------------------------------
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
