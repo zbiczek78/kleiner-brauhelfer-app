@@ -1,102 +1,91 @@
-name: Android Build (Qt 6.11)
+name: Kompilacja APK (Qt 6.6.3 Android) - POPRAWIONA
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master, main ]
   pull_request:
+    branches: [ master, main ]
 
 jobs:
-  build-android:
-    runs-on: ubuntu-22.04
-
-    env:
-      QT_VERSION: 6.10.0
-      ANDROID_NDK_VERSION: "26.1.10909125"
-      ANDROID_API_LEVEL: "33"
-      BUILD_TOOLS_VERSION: "33.0.2"
-
+  build_android:
+    runs-on: ubuntu-latest
+    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Klonowanie repozytorium
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
-    # ------------------------------
-    # Install Qt 6.10 for Android
-    # ------------------------------
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v3
-      with:
-        version: ${{ env.QT_VERSION }}
-        host: linux
-        target: android
-        arch: android_arm64_v8a
-        modules: qtcharts qtquickcontrols2 qtmultimedia qt5compat
-        cache: true
+      # 1. Konfiguracja Javy
+      - name: Konfiguracja JDK (Java 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      # 2. Konfiguracja Android SDK i NDK
+      # Wymagane narzędzia do kompilacji Androida
+      - name: Konfiguracja Android SDK i NDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34 
+          ndk: 25.1.8937393 # Wersja NDK
+          
+      # 3. Instalacja Qt dla Androida
+      # Dodano ID dla odczytu ścieżki Qt. Usunięto argument 'dir', 
+      # aby akcja sama poprawnie skonfigurowała ścieżki.
+      - name: Instalacja Qt 6.6.3 dla Androida (arm64-v8a)
+        id: qt_install
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: 6.6.3
+          host: 'linux'
+          target: 'android'
+          arch: 'android_arm64_v8a'
+          
+      # 4. Konfiguracja projektu (CMake)
+      - name: Konfiguracja CMake dla Androida
+        run: |
+          mkdir build
+          cd build
+          
+          # Odczytanie poprawnej ścieżki instalacji Qt z wyjścia akcji:
+          QT_ROOT_DIR=${{ steps.qt_install.outputs.qt-path }}
 
-    # ------------------------------
-    # Install Android cmdline-tools (TOOLS only)
-    # ------------------------------
-    - name: Install Android cmdline-tools
-      run: |
-        mkdir -p "$ANDROID_HOME/cmdline-tools"
-        cd "$ANDROID_HOME/cmdline-tools"
-        # remove only our tools folder, do not touch preinstalled 'latest'
-        rm -rf tools
-        wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
-        mkdir tools
-        unzip tools.zip -d tools
-        rm tools.zip
-        export PATH=$ANDROID_HOME/cmdline-tools/tools/bin:$PATH
+          echo "Używana ścieżka instalacji Qt: $QT_ROOT_DIR"
 
-    # ------------------------------
-    # Install Android SDK packages
-    # ------------------------------
-    - name: Install Android packages
-      run: |
-        yes | $ANDROID_HOME/cmdline-tools/tools/bin/sdkmanager --licenses
-        yes | $ANDROID_HOME/cmdline-tools/tools/bin/sdkmanager \
-          "platform-tools" \
-          "platforms;android-${ANDROID_API_LEVEL}" \
-          "build-tools;${BUILD_TOOLS_VERSION}" \
-          "ndk;${ANDROID_NDK_VERSION}"
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
+            -DANDROID_PLATFORM=android-34 \
+            -DANDROID_ABI=arm64-v8a \
+            -DQt6_DIR=$QT_ROOT_DIR/lib/cmake/Qt6 \
+            -DCMAKE_PREFIX_PATH=$QT_ROOT_DIR/lib/cmake/
 
-    # ------------------------------
-    # Configure environment for Qt Android builds
-    # ------------------------------
-    - name: Configure Qt for Android
-      run: |
-        echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-        echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
-        echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
-        echo "$ANDROID_HOME/cmdline-tools/tools/bin" >> $GITHUB_PATH
+      # 5. Budowanie projektu
+      - name: Budowanie projektu Qt
+        run: cmake --build build --config Release
+        
+      # 6. Znalezienie i przygotowanie pliku APK
+      - name: Znajdowanie i kopiowanie pliku APK
+        id: find_apk
+        run: |
+          # Szukanie wygenerowanego pliku APK w katalogu build
+          APK_PATH=$(find build -name "*.apk" -type f -print -quit)
 
-    # ------------------------------
-    # CMake configure
-    # ------------------------------
-    - name: Configure CMake
-      run: |
-        mkdir -p build-android
-        cd build-android
-        cmake .. \
-          -GNinja \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DQT_HOST_PATH="$Qt6_DIR/.." \
-          -DCMAKE_TOOLCHAIN_FILE="$Qt6_DIR/../android_arm64_v8a/lib/cmake/Qt6/qt.toolchain.cmake" \
-          -DANDROID_ABI=arm64-v8a \
-          -DANDROID_PLATFORM=android-${ANDROID_API_LEVEL}
+          if [ -z "$APK_PATH" ]; then
+             echo "::error::Nie znaleziono pliku APK. Sprawdź konfigurację projektu Qt."
+             exit 1
+          fi
 
-    # ------------------------------
-    # Build APK
-    # ------------------------------
-    - name: Build Android APK
-      run: |
-        cd build-android
-        ninja apk
-
-    # ------------------------------
-    # Upload resulting APK
-    # ------------------------------
-    - name: Upload APK artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: kleiner-brauhelfer-app-apk
-        path: build-android/*.apk
+          NEW_APK_NAME="kleiner-brauhelfer-app-android-arm64.apk"
+          cp "$APK_PATH" "$NEW_APK_NAME"
+          echo "::notice file=$NEW_APK_NAME::Wygenerowano APK: $NEW_APK_NAME"
+          echo "APK_FILE_NAME=$NEW_APK_NAME" >> $GITHUB_OUTPUT
+          
+      # 7. Przekazanie APK jako artefaktu
+      - name: Przekazanie APK jako artefaktu GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: kleiner-brauhelfer-app-android-apk
+          path: ${{ steps.find_apk.outputs.APK_FILE_NAME }}
