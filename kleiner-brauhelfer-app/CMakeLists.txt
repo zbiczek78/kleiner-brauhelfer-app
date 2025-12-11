@@ -195,3 +195,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core5Compat
     Qt6::CorePrivate
 )
+# Generate the Android APK packaging target
+qt_android_add_apk_target(${PROJECT_NAME})
+
