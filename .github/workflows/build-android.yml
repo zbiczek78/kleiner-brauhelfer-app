@@ -1,4 +1,4 @@
-name: Build Android APK (Qt 6.10)
+name: Build Android APK (Qt 6.7.2)
 
 on:
   workflow_dispatch:
@@ -12,16 +12,13 @@ jobs:
     runs-on: ubuntu-22.04
 
     env:
-      QT_VERSION: 6.10.0
+      QT_VERSION: 6.7.2
       ANDROID_API_LEVEL: "33"
-      ANDROID_ABIS: "armeabi-v7a,arm64-v8a"
-      # Ścieżki środowiskowe
+      ANDROID_ABIS: "arm64-v8a"
       ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
       ANDROID_HOME: ${{ github.workspace }}/android-sdk
       ANDROID_NDK_ROOT: ${{ github.workspace }}/android-sdk/ndk/26.1.10909125
       JAVA_HOME: /usr/lib/jvm/temurin-17-jdk
-      # Nazwa projektu (jeśli CMake generuje inną, dostosuj poniżej)
-      APP_NAME: kleiner-brauhelfer-app
 
     steps:
       - name: Checkout
@@ -62,12 +59,12 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install aqtinstall
 
-      - name: Install Qt 6.10.0 for Android
+      - name: Install Qt 6.7.2 for Android
         run: |
           mkdir -p "${{ github.workspace }}/Qt"
-          # Host tools (Linux desktop)
+          # Host tools
           python3 -m aqt install-qt linux desktop ${QT_VERSION} --outputdir "${{ github.workspace }}/Qt" --archives qtbase qtdeclarative qtshadertools
-          # Android targets (for both ABIs)
+          # Android target
           python3 -m aqt install-qt linux android ${QT_VERSION} --outputdir "${{ github.workspace }}/Qt" --archives qtbase qtdeclarative qtshadertools
           # Tools (androiddeployqt)
           python3 -m aqt install-tool linux desktop tools_${QT_VERSION%.*} --outputdir "${{ github.workspace }}/Qt" qt.tools.android
@@ -76,7 +73,6 @@ jobs:
         id: qtpaths
         run: |
           QT_ROOT="${{ github.workspace }}/Qt/${QT_VERSION}"
-          # Detect host and android directories
           QT_HOST_PATH=$(ls -d ${QT_ROOT}/gcc_64)
           QT_ANDROID_PATH=$(ls -d ${QT_ROOT}/android_* | head -n1)
           echo "QT_HOST_PATH=${QT_HOST_PATH}" >> $GITHUB_OUTPUT
@@ -84,70 +80,38 @@ jobs:
           ANDROIDDEPLOYQT=$(ls -1 ${QT_HOST_PATH}/bin/androiddeployqt)
           echo "ANDROIDDEPLOYQT=${ANDROIDDEPLOYQT}" >> $GITHUB_OUTPUT
 
-      - name: Configure and build (per ABI)
+      - name: Configure and build
         run: |
-          set -e
-          IFS=',' read -ra ABIS <<< "${ANDROID_ABIS}"
-          for ABI in "${ABIS[@]}"; do
-            BUILD_DIR="build-${ABI}"
-            mkdir -p "${BUILD_DIR}"
-            cmake -S . -B "${BUILD_DIR}" \
-              -G Ninja \
-              -D CMAKE_BUILD_TYPE=Release \
-              -D CMAKE_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake" \
-              -D ANDROID_ABI="${ABI}" \
-              -D ANDROID_PLATFORM="android-${ANDROID_API_LEVEL}" \
-              -D ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT}" \
-              -D ANDROID_NDK_ROOT="${ANDROID_NDK_ROOT}" \
-              -D QT_HOST_PATH="${{ steps.qtpaths.outputs.QT_HOST_PATH }}" \
-              -D CMAKE_PREFIX_PATH="${{ steps.qtpaths.outputs.QT_ANDROID_PATH }}" \
-              -D QT_ANDROID_DEPLOYMENT_SETTINGS_PATH="${BUILD_DIR}/android-deployment-settings.json"
-            cmake --build "${BUILD_DIR}" --parallel
-            # Generate deployment script from CMake if project uses Qt6 CMake helpers
-            cmake --build "${BUILD_DIR}" --target apk || true
-          done
+          mkdir -p build
+          cmake -S . -B build \
+            -G Ninja \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D CMAKE_TOOLCHAIN_FILE="${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake" \
+            -D ANDROID_ABI="${ANDROID_ABIS}" \
+            -D ANDROID_PLATFORM="android-${ANDROID_API_LEVEL}" \
+            -D ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT}" \
+            -D ANDROID_NDK_ROOT="${ANDROID_NDK_ROOT}" \
+            -D QT_HOST_PATH="${{ steps.qtpaths.outputs.QT_HOST_PATH }}" \
+            -D CMAKE_PREFIX_PATH="${{ steps.qtpaths.outputs.QT_ANDROID_PATH }}" \
+            -D QT_ANDROID_DEPLOYMENT_SETTINGS_PATH="build/android-deployment-settings.json"
+          cmake --build build --parallel
 
-      - name: Create APKs with androiddeployqt (fallback)
+      - name: Create APK with androiddeployqt
         run: |
-          set -e
-          IFS=',' read -ra ABIS <<< "${ANDROID_ABIS}"
-          for ABI in "${ABIS[@]}"; do
-            BUILD_DIR="build-${ABI}"
-            # If CMake target 'apk' didn't produce output, use androiddeployqt directly
-            if [ ! -f "${BUILD_DIR}/android-build/build/outputs/apk/debug/android-build-debug.apk" ]; then
-              "${{ steps.qtpaths.outputs.ANDROIDDEPLOYQT }}" \
-                --input "${BUILD_DIR}/android-deployment-settings.json" \
-                --output "${BUILD_DIR}/android-build" \
-                --gradle \
-                --verbose
-            fi
-          done
-
-      # Optional: Sign APK with your keystore (enable if you add secrets)
-      # - name: Sign APK
-      #   if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
-      #   run: |
-      #     echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
-      #     for APK in build-*/android-build/build/outputs/apk/debug/*.apk; do
-      #       "${ANDROID_SDK_ROOT}/build-tools/34.0.0/apksigner" sign \
-      #         --ks keystore.jks \
-      #         --ks-key-alias "${{ secrets.ANDROID_KEY_ALIAS }}" \
-      #         --ks-pass pass:"${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
-      #         --key-pass pass:"${{ secrets.ANDROID_KEY_PASSWORD }}" \
-      #         --out "${APK%.apk}-signed.apk" \
-      #         "${APK}"
-      #     done
+          "${{ steps.qtpaths.outputs.ANDROIDDEPLOYQT }}" \
+            --input build/android-deployment-settings.json \
+            --output build/android-build \
+            --gradle \
+            --verbose
 
       - name: Archive APKs
         run: |
           mkdir -p artifacts
-          for APK in build-*/android-build/build/outputs/apk/debug/*.apk; do
-            cp "${APK}" artifacts/
-          done
+          cp build/android-build/build/outputs/apk/debug/*.apk artifacts/
           ls -la artifacts
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk-qt610
+          name: android-apk-qt672
           path: artifacts
