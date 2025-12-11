@@ -1,4 +1,4 @@
-name: Kompilacja APK (Qt 6.6.3 Android) - OSTATECZNE
+name: Kompilacja APK (Qt 6.5.3 Android) - Zmiana Wersji
 
 on:
   push:
@@ -11,71 +11,70 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # ... (Kroki 1-5 bez zmian, ponieważ ustaliliśmy, że są poprawne)
       - name: Klonowanie repozytorium
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
+      # 1. Konfiguracja JDK (Java 17)
       - name: Konfiguracja JDK (Java 17)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
       
+      # 2. Konfiguracja Android SDK i NDK
       - name: Konfiguracja Android SDK i NDK
         uses: android-actions/setup-android@v3
         with:
           api-level: 34 
           ndk: 25.1.8937393
           
+      # 3. Jawne ustawienie Zmiennych Środowiskowych Androida
       - name: Ustawienie Zmiennych Środowiskowych Androida (dla aqtinstall)
         run: |
           echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
           
+      # 4. Instalacja aqtinstall
       - name: Instalacja Python i aqtinstall
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - run: pip install aqtinstall
 
-      - name: Ręczna instalacja Qt 6.6.3 dla Androida
+      # 5. Ręczna instalacja Qt 6.5.3 dla Androida
+      - name: Instalacja Qt za pomocą aqtinstall (Wersja 6.5.3)
         run: |
           QT_INSTALL_DIR=${{ runner.temp }}/Qt
-          aqt install-qt linux android 6.6.3 android_arm64_v8a --outputdir $QT_INSTALL_DIR
+          # ZMIANA WERSJI
+          aqt install-qt linux android 6.5.3 android_arm64_v8a --outputdir $QT_INSTALL_DIR
           
-          QT_ROOT_DIR=$(find $QT_INSTALL_DIR/6.6.3 -maxdepth 1 -name "android_arm64_v8a*")
+          QT_ROOT_DIR=$(find $QT_INSTALL_DIR/6.5.3 -maxdepth 1 -name "android_arm64_v8a*")
           
           echo "QT_ROOT_DIR=$QT_ROOT_DIR" >> $GITHUB_ENV
           echo "CMAKE_PREFIX_PATH=$QT_ROOT_DIR/lib/cmake" >> $GITHUB_ENV
           echo "PATH=$QT_ROOT_DIR/bin:$PATH" >> $GITHUB_ENV
 
-      # 6. Konfiguracja projektu (CMake) - Weryfikacja
-      - name: Konfiguracja CMake dla Androida (Weryfikacja Ścieżek)
+      # 6. Konfiguracja projektu (CMake)
+      - name: Konfiguracja CMake dla Androida
         run: |
           mkdir build
           cd build
           
-          # Sprawdzenie ścieżki prefixu (diagnoza)
-          echo "Weryfikacja CMAKE_PREFIX_PATH: ${{ env.CMAKE_PREFIX_PATH }}"
-          
-          # Używamy ścieżek z ENV i jawnie przekazujemy je do CMake
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
             -DANDROID_PLATFORM=android-34 \
             -DANDROID_ABI=arm64-v8a \
-            -DCMAKE_PREFIX_PATH=${{ env.CMAKE_PREFIX_PATH }} \
-            -DQt6_DIR=${{ env.QT_ROOT_DIR }}/lib/cmake/Qt6 \
-            --trace-expand # Użycie trace-expand do diagnozy
+            -DQt6_DIR=${{ env.QT_ROOT_DIR }}/lib/cmake/Qt6 
             
       # 7. Budowanie projektu
       - name: Budowanie projektu Qt
         run: cmake --build build --config Release
         
-      # ... (Kroki uploadu APK)
+      # 8. Znajdowanie i kopiowanie pliku APK
       - name: Znajdowanie i kopiowanie pliku APK
         id: find_apk
         run: |
@@ -88,6 +87,7 @@ jobs:
           cp "$APK_PATH" "$NEW_APK_NAME"
           echo "APK_FILE_NAME=$NEW_APK_NAME" >> $GITHUB_OUTPUT
           
+      # 9. Przekazanie APK jako artefaktu
       - name: Przekazanie APK jako artefaktu
         uses: actions/upload-artifact@v4
         with:
