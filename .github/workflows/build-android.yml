@@ -16,17 +16,34 @@ jobs:
         with:
           submodules: 'recursive'
 
+      # 1. Konfiguracja JDK (Java 17)
       - name: Konfiguracja JDK (Java 17)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-          
+      
+      # 2. Konfiguracja Android SDK i NDK
+      # Ta akcja ustawia wewnętrznie ANDROID_SDK_ROOT i ANDROID_NDK_ROOT
       - name: Konfiguracja Android SDK i NDK
         uses: android-actions/setup-android@v3
+        id: android_setup
         with:
           api-level: 34 
-          ndk: 25.1.8937393 # NDK
+          ndk: 25.1.8937393
+          
+      # NOWY KLUCZOWY KROK: Jawne ustawienie zmiennych w GITHUB_ENV
+      - name: Ustawienie Zmiennych Środowiskowych Androida dla Qt
+        run: |
+          # Ścieżka do Java Home jest ustawiana przez actions/setup-java@v4
+          # Ścieżka do Android SDK jest ustawiana przez android-actions/setup-android@v3
+          
+          # Upewnienie się, że JAVA_HOME jest widoczne (czasem setup-java@v4 używa tylko ${env.JAVA_HOME})
+          echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
+          
+          # Upewnienie się, że ścieżki Android są dostępne dla Qt
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
           
       # 3. Instalacja aqtinstall
       - name: Instalacja Python i aqtinstall
@@ -36,23 +53,18 @@ jobs:
       - run: pip install aqtinstall
 
       # 4. Ręczna instalacja Qt 6.6.3 dla Androida (arm64-v8a)
+      # Ten krok musi być wykonany PO ustawieniu zmiennych środowiskowych Androida.
       - name: Instalacja Qt za pomocą aqtinstall
-        id: aqt_install
         run: |
           QT_INSTALL_DIR=${{ runner.temp }}/Qt
           
-          # Użycie aqtinstall: system (linux), target (android), wersja (6.6.3), arch (android_arm64_v8a)
           aqt install-qt linux android 6.6.3 android_arm64_v8a --outputdir $QT_INSTALL_DIR
           
-          # Ustawienie głównej ścieżki Qt
           QT_ROOT_DIR=$(find $QT_INSTALL_DIR/6.6.3 -maxdepth 1 -name "android_arm64_v8a*")
           
-          # KLUCZOWE JAWNE USTAWIENIE ZMIENNYCH DLA CMake:
+          # Ustawienie ścieżek Qt (które faktycznie zawierają pliki konfiguracyjne)
           echo "QT_ROOT_DIR=$QT_ROOT_DIR" >> $GITHUB_ENV
           echo "CMAKE_PREFIX_PATH=$QT_ROOT_DIR/lib/cmake" >> $GITHUB_ENV
-          echo "PATH=$QT_ROOT_DIR/bin:$PATH" >> $GITHUB_ENV
-          
-          echo "Jawnie ustawiono CMAKE_PREFIX_PATH na: $QT_ROOT_DIR/lib/cmake"
 
       # 5. Konfiguracja projektu (CMake)
       - name: Konfiguracja CMake dla Androida
@@ -60,36 +72,31 @@ jobs:
           mkdir build
           cd build
           
-          # Teraz CMake_PREFIX_PATH jest w ENV i powinno znaleźć Qt6Config.cmake
+          # Qt6_DIR nie jest konieczne, jeśli CMAKE_PREFIX_PATH jest ustawione, ale jawne jest bezpieczniejsze
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
             -DANDROID_PLATFORM=android-34 \
             -DANDROID_ABI=arm64-v8a \
-            -DQt6_DIR=${{ env.QT_ROOT_DIR }}/lib/cmake/Qt6 # Nadal jawne ustawienie jest bezpieczne
+            -DQt6_DIR=${{ env.QT_ROOT_DIR }}/lib/cmake/Qt6 
             
-      # 6. Budowanie projektu
+      # ... (Kroki budowania i uploadu APK bez zmian)
       - name: Budowanie projektu Qt
         run: cmake --build build --config Release
         
-      # 7. Znalezienie i przygotowanie pliku APK
       - name: Znajdowanie i kopiowanie pliku APK
         id: find_apk
         run: |
-          # Ścieżka do APK dla Qt CMake jest często w build/android-build/bin
           APK_PATH=$(find build -name "*.apk" -type f -print -quit)
-
           if [ -z "$APK_PATH" ]; then
-             echo "::error::Nie znaleziono pliku APK. Sprawdź konfigurację projektu Qt."
+             echo "::error::Could not locate the final APK file. Check Qt project configuration."
              exit 1
           fi
-
           NEW_APK_NAME="kleiner-brauhelfer-app-android-arm64.apk"
           cp "$APK_PATH" "$NEW_APK_NAME"
           echo "APK_FILE_NAME=$NEW_APK_NAME" >> $GITHUB_OUTPUT
           
-      # 8. Przekazanie APK jako artefaktu
-      - name: Przekazanie APK jako artefaktu GitHub
+      - name: Przekazanie APK jako artefaktu
         uses: actions/upload-artifact@v4
         with:
           name: kleiner-brauhelfer-app-android-apk
