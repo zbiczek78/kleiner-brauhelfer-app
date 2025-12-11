@@ -11,7 +11,6 @@ jobs:
 
     env:
       QT_VERSION: 6.10.0
-      QT_ANDROID_ABIS: "arm64-v8a"
       ANDROID_NDK_VERSION: "26.1.10909125"
 
     steps:
@@ -19,7 +18,7 @@ jobs:
       uses: actions/checkout@v4
 
     # ------------------------------
-    # Install Qt 6.10 Android
+    # Install Qt 6.10 for Android
     # ------------------------------
     - name: Install Qt
       uses: jurplel/install-qt-action@v3
@@ -32,31 +31,33 @@ jobs:
         cache: true
 
     # ------------------------------
-    # Install Android command line tools
+    # Install Android cmdline-tools
     # ------------------------------
     - name: Install Android cmdline-tools
       run: |
         mkdir -p "$ANDROID_HOME/cmdline-tools"
         cd "$ANDROID_HOME/cmdline-tools"
+        # ensure clean install
+        rm -rf tools
         wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
-        mkdir latest
-        unzip tools.zip -d latest
+        mkdir tools
+        unzip tools.zip -d tools
         rm tools.zip
 
     # ------------------------------
-    # Install Android packages
+    # Install Android SDK packages
     # ------------------------------
     - name: Install Android packages
       run: |
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+        yes | $ANDROID_HOME/cmdline-tools/tools/bin/sdkmanager --licenses
+        yes | $ANDROID_HOME/cmdline-tools/tools/bin/sdkmanager \
           "platform-tools" \
           "platforms;android-33" \
           "build-tools;33.0.2" \
           "ndk;${ANDROID_NDK_VERSION}"
 
     # ------------------------------
-    # Configure Qt environment variables
+    # Configure environment for Qt Android builds
     # ------------------------------
     - name: Configure Qt for Android
       run: |
@@ -65,7 +66,7 @@ jobs:
         echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
 
     # ------------------------------
-    # CMake Configure
+    # CMake configure
     # ------------------------------
     - name: Configure CMake
       run: |
@@ -80,7 +81,7 @@ jobs:
           -DANDROID_PLATFORM=android-33
 
     # ------------------------------
-    # Build with Ninja
+    # Build APK
     # ------------------------------
     - name: Build Android APK
       run: |
@@ -88,9 +89,9 @@ jobs:
         ninja apk
 
     # ------------------------------
-    # Upload artifacts
+    # Upload resulting APK
     # ------------------------------
-    - name: Upload APK
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: kleiner-brauhelfer-app-apk
