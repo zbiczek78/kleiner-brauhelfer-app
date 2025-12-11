@@ -1,0 +1,92 @@
+name: Build Android APK (Qt 6.10)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-android:
+    runs-on: ubuntu-22.04
+
+    env:
+      ANDROID_API_LEVEL: "33"
+      BUILD_TOOLS_VERSION: "33.0.2"
+      NDK_VERSION: "r25c"
+      QT_VERSION: "6.10.1"
+      QT_TARGET: "android_arm64_v8a"
+
+    steps:
+
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: "17"
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        packages: |
+          platform-tools
+          "platforms;android-${{ env.ANDROID_API_LEVEL }}"
+          "build-tools;${{ env.BUILD_TOOLS_VERSION }}"
+        cmdline-tools-version: latest
+
+    - name: Setup NDK
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: ${{ env.NDK_VERSION }}
+        link-to-sdk: true
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1
+      with:
+        cmake-version: "3.22.1"
+
+    - name: Install Qt 6.10 Android
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ env.QT_VERSION }}
+        target: android
+        arch: ${{ env.QT_TARGET }}
+        modules: qtquickcontrols2 qtcharts qt5compat
+
+    - name: Configure Build
+      run: |
+        mkdir build-android
+        cd build-android
+
+        export ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}
+
+        QT_DIR=$(ls -d $HOME/Qt/${{ env.QT_VERSION }}/*android* | head -1)
+        echo "Found Qt: $QT_DIR"
+
+        cmake .. \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DANDROID_ABI=arm64-v8a \
+          -DANDROID_PLATFORM=android-${{ env.ANDROID_API_LEVEL }} \
+          -DANDROID_NDK=${ANDROID_NDK_HOME} \
+          -DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake \
+          -DCMAKE_PREFIX_PATH=$QT_DIR
+
+    - name: Build project
+      run: |
+        cd build-android
+        cmake --build . --parallel
+
+    - name: Package APK
+      run: |
+        cd build-android
+        cmake --build . --target apk --parallel
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk
+        path: build-android/**/android-build/**/*.apk
