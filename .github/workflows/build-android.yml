@@ -39,7 +39,7 @@ jobs:
       run: |
         mkdir -p "$ANDROID_HOME/cmdline-tools"
         cd "$ANDROID_HOME/cmdline-tools"
-        # remove only our tools folder, never touch preinstalled 'latest'
+        # remove only our tools folder, do not touch preinstalled 'latest'
         rm -rf tools
         wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
         mkdir tools
