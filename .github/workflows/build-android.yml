@@ -1,78 +1,97 @@
-name: Android APK build
+name: Android Build (Qt 6.10)
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-android:
+    runs-on: ubuntu-22.04
 
     env:
-      QT_VERSION: "6.10.0"
-      ANDROID_API: "33"
-      ANDROID_BUILD_TOOLS: "33.0.2"
+      QT_VERSION: 6.10.0
+      QT_ANDROID_ABIS: "arm64-v8a"
+      ANDROID_NDK_VERSION: "26.1.10909125"
 
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      # ---------- Install Qt ----------
-      - name: Install Qt 6.10 (Android)
-        uses: jurplel/install-qt-action@v3
-        with:
-          version: ${{ env.QT_VERSION }}
-          host: linux
-          target: android
-          arch: android_arm64_v8a
-          dir: ${{ github.workspace }}/qt
+    # ------------------------------
+    # Install Qt 6.10 Android
+    # ------------------------------
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        host: linux
+        target: android
+        arch: android_arm64_v8a
+        modules: qtcharts qtquickcontrols2 qtmultimedia qt5compat
+        cache: true
 
-      # ---------- Install Android SDK ----------
-      - name: Install Android SDK cmdline-tools
-        run: |
-          mkdir -p "$ANDROID_HOME/cmdline-tools"
-          cd "$ANDROID_HOME/cmdline-tools"
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
-          mkdir latest
-          unzip tools.zip -d latest
-          rm tools.zip
+    # ------------------------------
+    # Install Android command line tools
+    # ------------------------------
+    - name: Install Android cmdline-tools
+      run: |
+        mkdir -p "$ANDROID_HOME/cmdline-tools"
+        cd "$ANDROID_HOME/cmdline-tools"
+        wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
+        mkdir latest
+        unzip tools.zip -d latest
+        rm tools.zip
 
-      - name: Install Android packages
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
-            "platform-tools" \
-            "platforms;android-${ANDROID_API}" \
-            "build-tools;${ANDROID_BUILD_TOOLS}" \
-            "ndk;26.1.10909125"
+    # ------------------------------
+    # Install Android packages
+    # ------------------------------
+    - name: Install Android packages
+      run: |
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          "platform-tools" \
+          "platforms;android-33" \
+          "build-tools;33.0.2" \
+          "ndk;${ANDROID_NDK_VERSION}"
 
-      # ---------- Configure + build ----------
-      - name: Configure (CMake)
-        run: |
-          cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE="$QT_ROOT/../android_arm64_v8a/lib/cmake/Qt6/qt.toolchain.cmake" \
-            -DQT_HOST_PATH="$QT_ROOT" \
-            -DANDROID_SDK_ROOT="$ANDROID_HOME" \
-            -DANDROID_NDK_ROOT="$ANDROID_HOME/ndk/26.1.10909125" \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-${ANDROID_API}
+    # ------------------------------
+    # Configure Qt environment variables
+    # ------------------------------
+    - name: Configure Qt for Android
+      run: |
+        echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+        echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
+        echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
 
-      - name: Build (CMake)
-        run: cmake --build build --parallel
+    # ------------------------------
+    # CMake Configure
+    # ------------------------------
+    - name: Configure CMake
+      run: |
+        mkdir -p build-android
+        cd build-android
+        cmake .. \
+          -GNinja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DQT_HOST_PATH="$Qt6_DIR/.." \
+          -DCMAKE_TOOLCHAIN_FILE="$Qt6_DIR/../android_arm64_v8a/lib/cmake/Qt6/qt.toolchain.cmake" \
+          -DANDROID_ABI=arm64-v8a \
+          -DANDROID_PLATFORM=android-33
 
-      # ---------- Package APK ----------
-      - name: Create APK
-        run: |
-          $QT_ROOT/bin/androiddeployqt \
-            --input build/android-Deploy.json \
-            --output android-build \
-            --android-platform android-${ANDROID_API} \
-            --gradle
+    # ------------------------------
+    # Build with Ninja
+    # ------------------------------
+    - name: Build Android APK
+      run: |
+        cd build-android
+        ninja apk
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: kleiner-brauhelfer-app.apk
-          path: android-build/build/outputs/apk/debug/*.apk
+    # ------------------------------
+    # Upload artifacts
+    # ------------------------------
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: kleiner-brauhelfer-app-apk
+        path: build-android/*.apk
