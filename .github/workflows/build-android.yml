@@ -1,4 +1,4 @@
-name: Kompilacja APK (Qt 6.6.3 Android) - Finalna Wersja (Uproszczona)
+name: Kompilacja APK (Qt 6.6.3 Android) - Finalne Rozwiązanie
 
 on:
   push:
@@ -26,41 +26,57 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           api-level: 34 
-          ndk: 25.1.8937393
+          ndk: 25.1.8937393 # NDK
           
-      # 3. Instalacja Qt
-      # TA AKCJA USTAWIA AUTOMATYCZNIE CMAKE_PREFIX_PATH i Qt6_DIR.
-      - name: Instalacja Qt 6.6.3 dla Androida (arm64-v8a)
-        uses: jurplel/install-qt-action@v3
+      # 3. Instalacja aqtinstall
+      - name: Instalacja Python i aqtinstall
+        uses: actions/setup-python@v5
         with:
-          version: 6.6.3
-          host: 'linux'
-          target: 'android'
-          arch: 'android_arm64_v8a'
+          python-version: '3.x'
+      - run: pip install aqtinstall
+
+      # 4. Ręczna instalacja Qt 6.6.3 dla Androida (arm64-v8a)
+      - name: Instalacja Qt za pomocą aqtinstall
+        id: aqt_install
+        run: |
+          QT_INSTALL_DIR=${{ runner.temp }}/Qt
           
-      # 4. Konfiguracja projektu (CMake) - Użycie automatycznych ścieżek
-      # Wystarczy odwołać się do automatycznie ustawionej zmiennej CMAKE_PREFIX_PATH.
+          # Użycie aqtinstall: system (linux), target (android), wersja (6.6.3), arch (android_arm64_v8a)
+          aqt install-qt linux android 6.6.3 android_arm64_v8a --outputdir $QT_INSTALL_DIR
+          
+          # Ustawienie głównej ścieżki Qt
+          QT_ROOT_DIR=$(find $QT_INSTALL_DIR/6.6.3 -maxdepth 1 -name "android_arm64_v8a*")
+          
+          # KLUCZOWE JAWNE USTAWIENIE ZMIENNYCH DLA CMake:
+          echo "QT_ROOT_DIR=$QT_ROOT_DIR" >> $GITHUB_ENV
+          echo "CMAKE_PREFIX_PATH=$QT_ROOT_DIR/lib/cmake" >> $GITHUB_ENV
+          echo "PATH=$QT_ROOT_DIR/bin:$PATH" >> $GITHUB_ENV
+          
+          echo "Jawnie ustawiono CMAKE_PREFIX_PATH na: $QT_ROOT_DIR/lib/cmake"
+
+      # 5. Konfiguracja projektu (CMake)
       - name: Konfiguracja CMake dla Androida
         run: |
           mkdir build
           cd build
           
-          # Używamy tylko argumentów specyficznych dla Androida. 
-          # Ścieżki Qt są już w środowisku.
+          # Teraz CMake_PREFIX_PATH jest w ENV i powinno znaleźć Qt6Config.cmake
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
             -DANDROID_PLATFORM=android-34 \
-            -DANDROID_ABI=arm64-v8a 
-
-      # 5. Budowanie projektu
+            -DANDROID_ABI=arm64-v8a \
+            -DQt6_DIR=${{ env.QT_ROOT_DIR }}/lib/cmake/Qt6 # Nadal jawne ustawienie jest bezpieczne
+            
+      # 6. Budowanie projektu
       - name: Budowanie projektu Qt
         run: cmake --build build --config Release
         
-      # 6. Znalezienie i przygotowanie pliku APK
+      # 7. Znalezienie i przygotowanie pliku APK
       - name: Znajdowanie i kopiowanie pliku APK
         id: find_apk
         run: |
+          # Ścieżka do APK dla Qt CMake jest często w build/android-build/bin
           APK_PATH=$(find build -name "*.apk" -type f -print -quit)
 
           if [ -z "$APK_PATH" ]; then
@@ -72,7 +88,7 @@ jobs:
           cp "$APK_PATH" "$NEW_APK_NAME"
           echo "APK_FILE_NAME=$NEW_APK_NAME" >> $GITHUB_OUTPUT
           
-      # 7. Przekazanie APK jako artefaktu
+      # 8. Przekazanie APK jako artefaktu
       - name: Przekazanie APK jako artefaktu GitHub
         uses: actions/upload-artifact@v4
         with:
