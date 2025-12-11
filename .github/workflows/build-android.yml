@@ -12,6 +12,8 @@ jobs:
     env:
       QT_VERSION: 6.10.0
       ANDROID_NDK_VERSION: "26.1.10909125"
+      ANDROID_API_LEVEL: "33"
+      BUILD_TOOLS_VERSION: "33.0.2"
 
     steps:
     - name: Checkout repository
@@ -31,20 +33,19 @@ jobs:
         cache: true
 
     # ------------------------------
-    # Install Android cmdline-tools (NO "latest", only "tools/")
+    # Install Android cmdline-tools (TOOLS, no LATEST)
     # ------------------------------
     - name: Install Android cmdline-tools
       run: |
         mkdir -p "$ANDROID_HOME/cmdline-tools"
         cd "$ANDROID_HOME/cmdline-tools"
-
-        # usuwamy tylko własną instalację, nie dotykamy "latest"
+        # remove only our tools folder, never touch preinstalled 'latest'
         rm -rf tools
-
         wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
         mkdir tools
         unzip tools.zip -d tools
         rm tools.zip
+        export PATH=$ANDROID_HOME/cmdline-tools/tools/bin:$PATH
 
     # ------------------------------
     # Install Android SDK packages
@@ -54,8 +55,8 @@ jobs:
         yes | $ANDROID_HOME/cmdline-tools/tools/bin/sdkmanager --licenses
         yes | $ANDROID_HOME/cmdline-tools/tools/bin/sdkmanager \
           "platform-tools" \
-          "platforms;android-33" \
-          "build-tools;33.0.2" \
+          "platforms;android-${ANDROID_API_LEVEL}" \
+          "build-tools;${BUILD_TOOLS_VERSION}" \
           "ndk;${ANDROID_NDK_VERSION}"
 
     # ------------------------------
@@ -66,6 +67,7 @@ jobs:
         echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
         echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}" >> $GITHUB_ENV
         echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV
+        echo "$ANDROID_HOME/cmdline-tools/tools/bin" >> $GITHUB_PATH
 
     # ------------------------------
     # CMake configure
@@ -80,7 +82,7 @@ jobs:
           -DQT_HOST_PATH="$Qt6_DIR/.." \
           -DCMAKE_TOOLCHAIN_FILE="$Qt6_DIR/../android_arm64_v8a/lib/cmake/Qt6/qt.toolchain.cmake" \
           -DANDROID_ABI=arm64-v8a \
-          -DANDROID_PLATFORM=android-33
+          -DANDROID_PLATFORM=android-${ANDROID_API_LEVEL}
 
     # ------------------------------
     # Build APK
@@ -91,7 +93,7 @@ jobs:
         ninja apk
 
     # ------------------------------
-    # Upload APK artifact
+    # Upload resulting APK
     # ------------------------------
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
