@@ -1,92 +1,78 @@
-name: Build Android APK (Qt 6.10)
+name: Android APK build
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "main", "master" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main", "master" ]
 
 jobs:
-  build-android:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
 
     env:
-      ANDROID_API_LEVEL: "33"
-      BUILD_TOOLS_VERSION: "33.0.2"
-      NDK_VERSION: "r25c"
-      QT_VERSION: "6.10.1"
-      QT_TARGET: "android_arm64_v8a"
+      QT_VERSION: "6.10.0"
+      ANDROID_API: "33"
+      ANDROID_BUILD_TOOLS: "33.0.2"
 
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
 
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      # ---------- Install Qt ----------
+      - name: Install Qt 6.10 (Android)
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: linux
+          target: android
+          arch: android_arm64_v8a
+          dir: ${{ github.workspace }}/qt
 
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: temurin
-        java-version: "17"
+      # ---------- Install Android SDK ----------
+      - name: Install Android SDK cmdline-tools
+        run: |
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          cd "$ANDROID_HOME/cmdline-tools"
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
+          mkdir latest
+          unzip tools.zip -d latest
+          rm tools.zip
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      with:
-        packages: |
-          platform-tools
-          "platforms;android-${{ env.ANDROID_API_LEVEL }}"
-          "build-tools;${{ env.BUILD_TOOLS_VERSION }}"
-        cmdline-tools-version: latest
+      - name: Install Android packages
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
+            "platforms;android-${ANDROID_API}" \
+            "build-tools;${ANDROID_BUILD_TOOLS}" \
+            "ndk;26.1.10909125"
 
-    - name: Setup NDK
-      uses: nttld/setup-ndk@v1
-      with:
-        ndk-version: ${{ env.NDK_VERSION }}
-        link-to-sdk: true
+      # ---------- Configure + build ----------
+      - name: Configure (CMake)
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE="$QT_ROOT/../android_arm64_v8a/lib/cmake/Qt6/qt.toolchain.cmake" \
+            -DQT_HOST_PATH="$QT_ROOT" \
+            -DANDROID_SDK_ROOT="$ANDROID_HOME" \
+            -DANDROID_NDK_ROOT="$ANDROID_HOME/ndk/26.1.10909125" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-${ANDROID_API}
 
-    - name: Setup CMake
-      uses: jwlawson/actions-setup-cmake@v1
-      with:
-        cmake-version: "3.22.1"
+      - name: Build (CMake)
+        run: cmake --build build --parallel
 
-    - name: Install Qt 6.10 Android
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: ${{ env.QT_VERSION }}
-        target: android
-        arch: ${{ env.QT_TARGET }}
-        modules: qtquickcontrols2 qtcharts qt5compat
+      # ---------- Package APK ----------
+      - name: Create APK
+        run: |
+          $QT_ROOT/bin/androiddeployqt \
+            --input build/android-Deploy.json \
+            --output android-build \
+            --android-platform android-${ANDROID_API} \
+            --gradle
 
-    - name: Configure Build
-      run: |
-        mkdir build-android
-        cd build-android
-
-        export ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}
-
-        QT_DIR=$(ls -d $HOME/Qt/${{ env.QT_VERSION }}/*android* | head -1)
-        echo "Found Qt: $QT_DIR"
-
-        cmake .. \
-          -G Ninja \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DANDROID_ABI=arm64-v8a \
-          -DANDROID_PLATFORM=android-${{ env.ANDROID_API_LEVEL }} \
-          -DANDROID_NDK=${ANDROID_NDK_HOME} \
-          -DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake \
-          -DCMAKE_PREFIX_PATH=$QT_DIR
-
-    - name: Build project
-      run: |
-        cd build-android
-        cmake --build . --parallel
-
-    - name: Package APK
-      run: |
-        cd build-android
-        cmake --build . --target apk --parallel
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: android-apk
-        path: build-android/**/android-build/**/*.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kleiner-brauhelfer-app.apk
+          path: android-build/build/outputs/apk/debug/*.apk
