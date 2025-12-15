@@ -55,7 +55,7 @@ jobs:
         cache: true
 
     # ------------------------------------------------------------
-    # Install Qt6 Android (target libs)
+    # Install Qt6 Android (target libraries)
     # ------------------------------------------------------------
     - name: Install Qt6 Android
       id: qt-android
@@ -67,17 +67,18 @@ jobs:
         cache: true
 
     # ------------------------------------------------------------
-    # Configure CMake (Qt6 Android)
+    # Configure CMake (use Qt6 Android path)
     # ------------------------------------------------------------
     - name: Configure CMake
       run: |
         mkdir build
         cd build
 
+        # Ścieżka do lib/cmake/Qt6 w Qt6 Android
         QT_ANDROID_DIR=${{ steps.qt-android.outputs.qt_dir }}
         QT_ANDROID_CMAKE="$QT_ANDROID_DIR/lib/cmake/Qt6"
 
-        echo "Using Qt6 Android CMake path: $QT_ANDROID_CMAKE"
+        echo "Qt6 Android CMake path: $QT_ANDROID_CMAKE"
 
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
@@ -87,7 +88,7 @@ jobs:
           -DCMAKE_PREFIX_PATH=$QT_ANDROID_CMAKE
 
     # ------------------------------------------------------------
-    # Build native code
+    # Build native library
     # ------------------------------------------------------------
     - name: Build
       run: |
@@ -95,7 +96,7 @@ jobs:
         cmake --build . -- -j$(nproc)
 
     # ------------------------------------------------------------
-    # Build APK using androiddeployqt (from Desktop Qt)
+    # Build APK using androiddeployqt (from Qt6 Desktop)
     # ------------------------------------------------------------
     - name: Build APK
       run: |
@@ -116,7 +117,7 @@ jobs:
           --gradle
 
     # ------------------------------------------------------------
-    # Upload APK
+    # Upload APK as artifact
     # ------------------------------------------------------------
     - uses: actions/upload-artifact@v4
       with:
