@@ -67,18 +67,17 @@ jobs:
         cache: true
 
     # ------------------------------------------------------------
-    # Configure CMake (use Qt6 Android path)
+    # Configure CMake (Qt6 Android path)
     # ------------------------------------------------------------
     - name: Configure CMake
       run: |
         mkdir build
         cd build
 
-        # Qt6 Android directory
         QT_ANDROID_DIR=${{ steps.qt-android.outputs.qt_dir }}
         QT_ANDROID_CMAKE="$QT_ANDROID_DIR/lib/cmake/Qt6"
 
-        echo "Using Qt6 Android CMake path: $QT_ANDROID_CMAKE"
+        echo "Qt6 Android CMake path: $QT_ANDROID_CMAKE"
 
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
@@ -96,7 +95,7 @@ jobs:
         cmake --build . -- -j$(nproc)
 
     # ------------------------------------------------------------
-    # Build APK using androiddeployqt (from Desktop Qt)
+    # Build APK using androiddeployqt (Qt6 Desktop)
     # ------------------------------------------------------------
     - name: Build APK
       run: |
