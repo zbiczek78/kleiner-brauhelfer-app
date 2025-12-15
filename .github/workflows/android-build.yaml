@@ -57,14 +57,16 @@ jobs:
     # ------------------------------------------------------------
     # Install Qt6 Android (target libraries)
     # ------------------------------------------------------------
-    - name: Install Qt6 Android
+    - name: Install Qt Android
       id: qt-android
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
+        host: linux
         target: android
-        arch: android_arm64_v8a
-        cache: true
+        arch: android_${{ env.ANDROID_ABI }}
+        modules: qtbase, qtdeclarative
+        install-dir: ${{ github.workspace }}/Qt/${{ env.QT_VERSION }}
 
     # ------------------------------------------------------------
     # Debug Qt Android path
@@ -72,28 +74,17 @@ jobs:
     - name: Debug Qt Android path
       run: |
         echo "Qt Android dir: ${{ steps.qt-android.outputs.qt_dir }}"
-        ls -l ${{ steps.qt-android.outputs.qt_dir }}
+        ls -l "${{ steps.qt-android.outputs.qt_dir }}"
 
-    # ------------------------------------------------------------
-    # Configure CMake (use Qt6 Android path)
-    # ------------------------------------------------------------
     - name: Configure CMake
       run: |
-        mkdir build
-        cd build
-
-        # Poprawna ścieżka do Qt6 Android
-        QT_ANDROID_DIR=${{ steps.qt-android.outputs.qt_dir }}
-        QT_ANDROID_CMAKE="$QT_ANDROID_DIR/lib/cmake/Qt6"
-
-        echo "Using Qt6 Android CMake path: $QT_ANDROID_CMAKE"
-
-        cmake .. \
+        cmake -S . -B build \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
-          -DANDROID_ABI=${ANDROID_ABI} \
-          -DANDROID_PLATFORM=${ANDROID_PLATFORM} \
-          -DCMAKE_PREFIX_PATH=$QT_ANDROID_CMAKE
+          -DCMAKE_PREFIX_PATH="${{ steps.qt-android.outputs.qt_dir }}" \
+          -DQt6_DIR="${{ steps.qt-android.outputs.qt_dir }}/lib/cmake/Qt6" \
+          -DANDROID_ABI=${{ env.ANDROID_ABI }} \
+          -DANDROID_PLATFORM=${{ env.ANDROID_PLATFORM }} \
+          -DCMAKE_TOOLCHAIN_FILE=${{ steps.qt-android.outputs.qt_dir }}/android_arm64_v8a/share/cmake/Qt6/Qt6Toolchain.cmake
 
     # ------------------------------------------------------------
     # Build native library
