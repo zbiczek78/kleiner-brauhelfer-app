@@ -6,77 +6,104 @@ on:
   pull_request:
 
 jobs:
-  build_android:
+  build-android:
     runs-on: ubuntu-latest
 
     env:
-      ANDROID_SDK_ROOT: $HOME/android-sdk
-      ANDROID_NDK_ROOT: $HOME/android-ndk
+      ANDROID_ABI: arm64-v8a
+      ANDROID_PLATFORM: android-33
+      ANDROID_NDK_VERSION: 25.2.9519653
+      QT_VERSION: 6.6.2
       JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v3
+    # ------------------------------------------------------------
+    # Checkout
+    # ------------------------------------------------------------
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v3
-        with:
-          distribution: temurin
-          java-version: '11'
+    # ------------------------------------------------------------
+    # Java (wymagane przez Android + Qt)
+    # ------------------------------------------------------------
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '11'
 
-      - name: Install Android SDK & NDK
-        run: |
-          mkdir -p $ANDROID_SDK_ROOT
-          cd $ANDROID_SDK_ROOT
+    # ------------------------------------------------------------
+    # Android SDK (bez ręcznego wget/unzip)
+    # ------------------------------------------------------------
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
 
-          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip
-          unzip tools.zip
-          mkdir -p cmdline-tools/latest
-          mv cmdline-tools/* cmdline-tools/latest/
+    - name: Install Android platform & NDK
+      run: |
+        sdkmanager \
+          "platforms;android-33" \
+          "build-tools;33.0.2" \
+          "ndk;${ANDROID_NDK_VERSION}"
 
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
+    # ------------------------------------------------------------
+    # Qt for Android
+    # ------------------------------------------------------------
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        target: android
+        arch: android_arm64_v8a
+        cache: true
 
-          yes | sdkmanager \
-            "platform-tools" \
-            "platforms;android-33" \
-            "build-tools;33.0.2" \
-            "ndk;25.2.9519653"
+    # ------------------------------------------------------------
+    # Configure CMake
+    # ------------------------------------------------------------
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
 
-      - name: Install Qt for Android
-        uses: jurplel/install-qt-action@v3
-        with:
-          version: 6.6.2
-          target: android
-          arch: android_arm64_v8a
-          android_sdk_root: ${{ env.ANDROID_SDK_ROOT }}
-          android_ndk_root: ${{ env.ANDROID_NDK_ROOT }}
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+          -DANDROID_ABI=${ANDROID_ABI} \
+          -DANDROID_PLATFORM=${ANDROID_PLATFORM}
 
-      - name: Configure CMake
-        run: |
-          mkdir build
-          cd build
-          cmake .. \
-            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-33 \
-            -DCMAKE_BUILD_TYPE=Release
+    # ------------------------------------------------------------
+    # Build native code
+    # ------------------------------------------------------------
+    - name: Build
+      run: |
+        cd build
+        cmake --build . -- -j$(nproc)
 
-      - name: Build
-        run: |
-          cd build
-          cmake --build . -- -j$(nproc)
+    # ------------------------------------------------------------
+    # Build APK using Qt androiddeployqt
+    # ------------------------------------------------------------
+    - name: Build APK
+      run: |
+        cd build
 
-      - name: Build APK
-        run: |
-          cd build
-          androiddeployqt \
-            --input *deployment-settings.json \
-            --output android-build \
-            --android-platform android-33 \
-            --jdk $JAVA_HOME
+        ANDROIDDEPLOYQT=$(find $Qt6_DIR -name androiddeployqt | head -n 1)
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: kleiner-brauhelfer-apk
-          path: build/android-build/**/*.apk
+        if [ -z "$ANDROIDDEPLOYQT" ]; then
+          echo "androiddeployqt not found"
+          exit 1
+        fi
+
+        $ANDROIDDEPLOYQT \
+          --input *deployment-settings.json \
+          --output android-build \
+          --android-platform android-33 \
+          --jdk $JAVA_HOME \
+          --gradle
+
+    # ------------------------------------------------------------
+    # Upload APK
+    # ------------------------------------------------------------
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: kleiner-brauhelfer-apk
+        path: build/android-build/**/*.apk
