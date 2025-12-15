@@ -18,7 +18,7 @@ jobs:
 
     steps:
     # ------------------------------------------------------------
-    # Checkout repo
+    # Checkout repository
     # ------------------------------------------------------------
     - uses: actions/checkout@v4
 
@@ -74,11 +74,11 @@ jobs:
         mkdir build
         cd build
 
-        # Ścieżka do lib/cmake/Qt6 w Qt6 Android
+        # Qt6 Android directory
         QT_ANDROID_DIR=${{ steps.qt-android.outputs.qt_dir }}
         QT_ANDROID_CMAKE="$QT_ANDROID_DIR/lib/cmake/Qt6"
 
-        echo "Qt6 Android CMake path: $QT_ANDROID_CMAKE"
+        echo "Using Qt6 Android CMake path: $QT_ANDROID_CMAKE"
 
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
@@ -96,7 +96,7 @@ jobs:
         cmake --build . -- -j$(nproc)
 
     # ------------------------------------------------------------
-    # Build APK using androiddeployqt (from Qt6 Desktop)
+    # Build APK using androiddeployqt (from Desktop Qt)
     # ------------------------------------------------------------
     - name: Build APK
       run: |
