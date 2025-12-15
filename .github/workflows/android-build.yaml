@@ -20,14 +20,12 @@ jobs:
     # ------------------------------------------------------------
     # Checkout
     # ------------------------------------------------------------
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     # ------------------------------------------------------------
     # Java 17
     # ------------------------------------------------------------
-    - name: Set up Java 17
-      uses: actions/setup-java@v4
+    - uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: '17'
@@ -35,8 +33,7 @@ jobs:
     # ------------------------------------------------------------
     # Android SDK + NDK
     # ------------------------------------------------------------
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+    - uses: android-actions/setup-android@v3
 
     - name: Install Android platform & NDK
       run: |
@@ -46,43 +43,44 @@ jobs:
           "ndk;${ANDROID_NDK_VERSION}"
 
     # ------------------------------------------------------------
-    # Qt DESKTOP (WYMAGANE)
+    # Qt Desktop (HOST)
     # ------------------------------------------------------------
     - name: Install Qt Desktop
+      id: qt-desktop
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
         target: desktop
         arch: gcc_64
-        cache: true
 
     # ------------------------------------------------------------
-    # Qt ANDROID
+    # Qt Android (TARGET)
     # ------------------------------------------------------------
     - name: Install Qt Android
+      id: qt-android
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
         target: android
         arch: android_arm64_v8a
-        cache: true
 
     # ------------------------------------------------------------
-    # Configure CMake (ANDROID Qt!)
+    # Configure CMake (UWAGA: PEŁNA ŚCIEŻKA DO Qt6Config.cmake)
     # ------------------------------------------------------------
     - name: Configure CMake
       run: |
         mkdir build
         cd build
 
-        echo "Qt Android DIR: $Qt6_DIR"
+        QT_ANDROID_CMAKE=${{ steps.qt-android.outputs.qt_dir }}/lib/cmake/Qt6
+        echo "Qt Android CMake dir: $QT_ANDROID_CMAKE"
 
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
           -DANDROID_ABI=${ANDROID_ABI} \
           -DANDROID_PLATFORM=${ANDROID_PLATFORM} \
-          -DCMAKE_PREFIX_PATH=$Qt6_DIR
+          -DCMAKE_PREFIX_PATH=$QT_ANDROID_CMAKE
 
     # ------------------------------------------------------------
     # Build native code
@@ -93,13 +91,13 @@ jobs:
         cmake --build . -- -j$(nproc)
 
     # ------------------------------------------------------------
-    # Build APK (androiddeployqt z DESKTOP Qt)
+    # Build APK (androiddeployqt z Desktop Qt)
     # ------------------------------------------------------------
     - name: Build APK
       run: |
         cd build
 
-        ANDROIDDEPLOYQT=$(find $Qt6_DIR/../gcc_64 -name androiddeployqt | head -n 1)
+        ANDROIDDEPLOYQT=$(find ${{ steps.qt-desktop.outputs.qt_dir }} -name androiddeployqt | head -n 1)
 
         if [ -z "$ANDROIDDEPLOYQT" ]; then
           echo "androiddeployqt not found"
@@ -116,8 +114,7 @@ jobs:
     # ------------------------------------------------------------
     # Upload APK
     # ------------------------------------------------------------
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v4
       with:
         name: kleiner-brauhelfer-apk
         path: build/android-build/**/*.apk
