@@ -12,10 +12,10 @@ project(${TARGET} VERSION ${VERSION} LANGUAGES CXX)
 # Qt6 configuration
 # --------------------------
 # Pozwala nadpisać Qt6_DIR z workflow
+# Pozwala nadpisać Qt6_DIR z workflow
 if(NOT Qt6_DIR)
     set(Qt6_DIR "$ENV{CMAKE_PREFIX_PATH}" CACHE PATH "")
 endif()
-
 
 find_package(Qt6 REQUIRED COMPONENTS Core Sql Xml)
 
