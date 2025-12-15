@@ -67,17 +67,26 @@ jobs:
         cache: true
 
     # ------------------------------------------------------------
-    # Configure CMake (Qt6 Android path)
+    # Debug Qt Android path
+    # ------------------------------------------------------------
+    - name: Debug Qt Android path
+      run: |
+        echo "Qt Android dir: ${{ steps.qt-android.outputs.qt_dir }}"
+        ls -l ${{ steps.qt-android.outputs.qt_dir }}
+
+    # ------------------------------------------------------------
+    # Configure CMake (use Qt6 Android path)
     # ------------------------------------------------------------
     - name: Configure CMake
       run: |
         mkdir build
         cd build
 
+        # Poprawna ścieżka do Qt6 Android
         QT_ANDROID_DIR=${{ steps.qt-android.outputs.qt_dir }}
         QT_ANDROID_CMAKE="$QT_ANDROID_DIR/lib/cmake/Qt6"
 
-        echo "Qt6 Android CMake path: $QT_ANDROID_CMAKE"
+        echo "Using Qt6 Android CMake path: $QT_ANDROID_CMAKE"
 
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
