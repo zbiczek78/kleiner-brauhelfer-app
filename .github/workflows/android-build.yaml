@@ -76,7 +76,7 @@ jobs:
             --jdk $JAVA_HOME
 
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kleiner-brauhelfer-apk
           path: build/android-build/**/*.apk
