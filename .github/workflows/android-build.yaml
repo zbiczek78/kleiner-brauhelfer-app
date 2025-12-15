@@ -18,12 +18,12 @@ jobs:
 
     steps:
     # ------------------------------------------------------------
-    # Checkout
+    # Checkout repo
     # ------------------------------------------------------------
     - uses: actions/checkout@v4
 
     # ------------------------------------------------------------
-    # Java 17
+    # Set up Java 17
     # ------------------------------------------------------------
     - uses: actions/setup-java@v4
       with:
@@ -43,37 +43,41 @@ jobs:
           "ndk;${ANDROID_NDK_VERSION}"
 
     # ------------------------------------------------------------
-    # Qt Desktop (HOST)
+    # Install Qt6 Desktop (host tools)
     # ------------------------------------------------------------
-    - name: Install Qt Desktop
+    - name: Install Qt6 Desktop
       id: qt-desktop
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
         target: desktop
         arch: gcc_64
+        cache: true
 
     # ------------------------------------------------------------
-    # Qt Android (TARGET)
+    # Install Qt6 Android (target libs)
     # ------------------------------------------------------------
-    - name: Install Qt Android
+    - name: Install Qt6 Android
       id: qt-android
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
         target: android
         arch: android_arm64_v8a
+        cache: true
 
     # ------------------------------------------------------------
-    # Configure CMake (UWAGA: PEŁNA ŚCIEŻKA DO Qt6Config.cmake)
+    # Configure CMake (Qt6 Android)
     # ------------------------------------------------------------
     - name: Configure CMake
       run: |
         mkdir build
         cd build
 
-        QT_ANDROID_CMAKE=${{ steps.qt-android.outputs.qt_dir }}/lib/cmake/Qt6
-        echo "Qt Android CMake dir: $QT_ANDROID_CMAKE"
+        QT_ANDROID_DIR=${{ steps.qt-android.outputs.qt_dir }}
+        QT_ANDROID_CMAKE="$QT_ANDROID_DIR/lib/cmake/Qt6"
+
+        echo "Using Qt6 Android CMake path: $QT_ANDROID_CMAKE"
 
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
@@ -91,7 +95,7 @@ jobs:
         cmake --build . -- -j$(nproc)
 
     # ------------------------------------------------------------
-    # Build APK (androiddeployqt z Desktop Qt)
+    # Build APK using androiddeployqt (from Desktop Qt)
     # ------------------------------------------------------------
     - name: Build APK
       run: |
