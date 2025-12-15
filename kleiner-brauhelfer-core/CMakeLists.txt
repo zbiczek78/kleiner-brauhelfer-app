@@ -1,56 +1,55 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Define project organization, name, version and build type of the library
+# Project metadata
 set(ORGANIZATION kleiner-brauhelfer)
 set(TARGET kleiner-brauhelfer-core)
 set(VERSION 2.9.8)
 set(BUILD_TYPE STATIC)
 
-# Set name, version and language of the project
 project(${TARGET} VERSION ${VERSION} LANGUAGES CXX)
 
-# Qt6 requirements
-find_package(Qt6 REQUIRED COMPONENTS
-    Core
-    Sql
-    Xml
-)
+# --------------------------
+# Qt6 configuration
+# --------------------------
+# Pozwala nadpisać Qt6_DIR z workflow
+if(NOT Qt6_DIR)
+    set(Qt6_DIR "$ENV{Qt6_DIR}")
+endif()
 
-# Setup project-wide defaults to a standard arrangement
+find_package(Qt6 REQUIRED COMPONENTS Core Sql Xml)
+
+# Standard project setup
 qt_standard_project_setup(REQUIRES 6.5)
 
-# Globally disable static linkage for Qt6
+# Optional: static linking (OFF by default)
 set(Qt6_STATIC OFF CACHE BOOL "" FORCE)
 
-# Set required C++ standard
+# --------------------------
+# C++ settings
+# --------------------------
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Enables building multi-ABI packages for Android
+# Multi-ABI support for Android
 set(QT_ANDROID_BUILD_ALL_ABIS TRUE)
 
-# Source files
-file(GLOB SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-)
+# --------------------------
+# Sources and headers
+# --------------------------
+file(GLOB SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
-# Header files
-file(GLOB HEADERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.h
-)
-
-# Add the library to the build system
+# --------------------------
+# Library target
+# --------------------------
 qt_add_library(${PROJECT_NAME} ${BUILD_TYPE}
     ${SOURCES}
     ${HEADERS}
 )
 
-# Add directories to the include search path
-target_include_directories(${PROJECT_NAME} PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Set the definitions
+# Definitions
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     ORGANIZATION="${ORGANIZATION}"
     TARGET="${TARGET}"
@@ -60,18 +59,28 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     VERSION="${PROJECT_VERSION}"
 )
 
-# Set the definition of the library build type
+# Static/shared build type
 if(${BUILD_TYPE} STREQUAL STATIC)
     target_compile_definitions(${PROJECT_NAME} PRIVATE KLEINERBRAUHELFERCORE_LIBRARY_STATIC)
 elseif(${BUILD_TYPE} STREQUAL SHARED)
     target_compile_definitions(${PROJECT_NAME} PRIVATE KLEINERBRAUHELFERCORE_LIBRARY_SHARED)
 else()
-    message(FATAL_ERROR "BUILD_TYPE must be either STATIC or SHARED" )
+    message(FATAL_ERROR "BUILD_TYPE must be either STATIC or SHARED")
 endif()
 
-# Link the Qt libraries
+# --------------------------
+# Link Qt libraries
+# --------------------------
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core
     Qt6::Sql
     Qt6::Xml
 )
+
+# --------------------------
+# Android-specific
+# --------------------------
+if(ANDROID)
+    message(STATUS "Building for Android: enabling multi-ABI")
+    set(QT_ANDROID_BUILD_ALL_ABIS TRUE)
+endif()
