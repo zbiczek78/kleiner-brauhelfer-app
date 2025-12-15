@@ -46,9 +46,20 @@ jobs:
           "ndk;${ANDROID_NDK_VERSION}"
 
     # ------------------------------------------------------------
-    # Qt for Android
+    # Qt DESKTOP (WYMAGANE)
     # ------------------------------------------------------------
-    - name: Install Qt
+    - name: Install Qt Desktop
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ env.QT_VERSION }}
+        target: desktop
+        arch: gcc_64
+        cache: true
+
+    # ------------------------------------------------------------
+    # Qt ANDROID
+    # ------------------------------------------------------------
+    - name: Install Qt Android
       uses: jurplel/install-qt-action@v3
       with:
         version: ${{ env.QT_VERSION }}
@@ -57,14 +68,14 @@ jobs:
         cache: true
 
     # ------------------------------------------------------------
-    # Configure CMake  <<< TU JEST KLUCZOWA ZMIANA
+    # Configure CMake (ANDROID Qt!)
     # ------------------------------------------------------------
     - name: Configure CMake
       run: |
         mkdir build
         cd build
 
-        echo "Qt6_DIR = $Qt6_DIR"
+        echo "Qt Android DIR: $Qt6_DIR"
 
         cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
@@ -82,13 +93,13 @@ jobs:
         cmake --build . -- -j$(nproc)
 
     # ------------------------------------------------------------
-    # Build APK
+    # Build APK (androiddeployqt z DESKTOP Qt)
     # ------------------------------------------------------------
     - name: Build APK
       run: |
         cd build
 
-        ANDROIDDEPLOYQT=$(find $Qt6_DIR -name androiddeployqt | head -n 1)
+        ANDROIDDEPLOYQT=$(find $Qt6_DIR/../gcc_64 -name androiddeployqt | head -n 1)
 
         if [ -z "$ANDROIDDEPLOYQT" ]; then
           echo "androiddeployqt not found"
